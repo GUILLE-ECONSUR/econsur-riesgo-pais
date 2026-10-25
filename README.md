@@ -1,6 +1,6 @@
 # Riesgo país · EMBI Latinoamérica
 
-Descarga la serie histórica del spread del EMBI (Argentina y Latinoamérica) publicada por el BCRD, la grafica y la compara según la **calificación crediticia vigente** de cada país (S&P, Moody's y Fitch). Listo para Vercel.
+Descarga la serie histórica del spread del EMBI (Argentina y Latinoamérica) publicada por el BCRD, la grafica, la compara según la **calificación crediticia vigente** de cada país y la cruza con indicadores macro del Banco Mundial y el FMI. Listo para Vercel.
 
 ## Qué incluye
 
@@ -8,6 +8,8 @@ Descarga la serie histórica del spread del EMBI (Argentina y Latinoamérica) pu
 - **Barras horizontales**: último dato disponible de spread por país, con etiqueta en cada barra, selector propio de países y sin Venezuela (outlier). Los índices EMBI Global/Latino se pueden agregar con un botón.
 - **Todos los gráficos** llevan la fuente («Elaboración propia en base a fuentes del mercado») y un botón **Exportar PNG** (el PNG incluye título, período y fuente).
 - **Comparación por calificación**: tabla con notas de las tres agencias (con perspectiva y antigüedad), nota promedio, grupo (Grado de inversión / BB / B / CCC o inferior), spread, variación a 30 días y en el período elegido, spread «esperado» según la nota y desvío; gráfico de dispersión nivel vs. nota; spread promedio por grupo en el tiempo.
+- **Pestaña «Comparativo macro»**: cuadro por país con calificación, spread y 14 indicadores del Banco Mundial y el FMI (PIB per cápita, crecimiento, inflación, desempleo, resultado fiscal y primario, deuda pública, deuda externa, servicio de deuda, cuenta corriente, reservas, exportaciones, IED). Se ordena por cualquier columna, se filtra por grupo (Actividad / Fiscal / Externo), permite elegir el año de los datos del FMI (incluye estimaciones y proyecciones WEO) y se descarga en CSV. Debajo, un gráfico con selector de indicador: barras por país o dispersión contra el spread (con correlación), con fuente y Exportar PNG.
+- **API `/api/macro`**: consulta ambas fuentes (sin clave), cache de 24 h; si un indicador falla conserva el último valor guardado.
 - **API `/api/embi`**: descarga el Excel del BCRD y devuelve JSON (convierte puntos porcentuales a puntos básicos).
 - **API `/api/ratings`**: calificaciones actualizadas, desde las tablas de Wikipedia (ver «Calificaciones»).
 - **Snapshots** `data/embi.json` y `data/ratings.json`: respaldo si alguna fuente no responde. Un workflow de GitHub Actions los actualiza cada día hábil y Vercel redespliega.
@@ -17,6 +19,8 @@ Descarga la serie histórica del spread del EMBI (Argentina y Latinoamérica) pu
 ```
 api/embi.js                 GET /api/embi
 api/ratings.js              GET /api/ratings
+api/macro.js                GET /api/macro
+lib/macro.js                Cliente Banco Mundial + FMI, catálogo de indicadores
 lib/parse.js                Parser del Excel del BCRD
 lib/ratings.js              Parser de calificaciones, escala numérica y grupos
 public/index.html           Frontend (Chart.js)
@@ -48,12 +52,27 @@ Fuente automática: las tablas de S&P, Moody's y Fitch de la página de Wikipedi
 - Si Wikipedia cambia el formato y se encuentran menos de 8 países, la API lo trata como falla y sirve el snapshot.
 - Para pasar a una fuente paga (p. ej. Trading Economics) alcanza con reemplazar `fetchRatingsLive` en `lib/ratings.js` por una función que devuelva el mismo objeto `{ meta, ratings }`.
 
+## Datos macro (Banco Mundial y FMI)
+
+| Fuente | Endpoint | Qué se usa |
+|---|---|---|
+| Banco Mundial | `https://api.worldbank.org/v2/country/ARG;BRA;…/indicator/{código}?format=json` | Último dato observado por país (WDI e IDS) |
+| FMI | `https://www.imf.org/external/datamapper/api/v1/{indicador}/ARG/BRA/…` | Serie WEO por año, con estimaciones y proyecciones |
+
+Los indicadores y sus códigos están en `lib/macro.js` (`INDICATORS`); para agregar uno basta con sumar una línea.
+
+Cosas a tener en cuenta:
+- **Deuda externa y servicio de deuda** vienen de las estadísticas de deuda del Banco Mundial (IDS), que cubren solo países de ingreso bajo y medio. Chile, Uruguay y Panamá pueden salir sin dato. La deuda externa está como % del INB, no del PIB (es lo que publica el BM).
+- Los datos del Banco Mundial tienen rezago (suele ser 1 o 2 años); el año de cada dato se muestra en gris. Los del FMI se eligen por año; los años desde el actual son estimaciones o proyecciones y se ven en cursiva. Por defecto se muestra el último año cerrado.
+- Venezuela casi no tiene datos recientes en estas fuentes y su spread es un valor atípico: se muestra atenuada en la tabla y no entra en los gráficos.
+- Hay una falla parcial tolerada: si una API cae, la corrida conserva lo anterior de ese indicador y lo informa en `meta.stale`.
+
 ## Puesta en marcha
 
 ```bash
 npm install
 npm test
-npm run update-data        # regenera ambos snapshots (--only=embi | --only=ratings)
+npm run update-data        # regenera los snapshots (--only=embi | --only=ratings | --only=macro)
 node scripts/update-data.js ./Serie_Historica_Spread_del_EMBI.xlsx --only=embi   # desde un Excel local
 npx vercel dev             # http://localhost:3000
 ```

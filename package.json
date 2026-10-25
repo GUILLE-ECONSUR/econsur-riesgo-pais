@@ -9,7 +9,7 @@
   },
   "scripts": {
     "update-data": "node scripts/update-data.js",
-    "test": "node test/parse.test.js && node test/ratings.test.js",
+    "test": "node test/parse.test.js && node test/ratings.test.js && node test/macro.test.js",
     "dev": "vercel dev"
   },
   "dependencies": {

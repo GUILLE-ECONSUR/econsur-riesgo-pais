@@ -50,6 +50,18 @@
   footer { color: var(--muted); font-size: .8rem; margin-top: 8px; }
   footer a { color: var(--accent); }
   h2 { font-size: 1rem; margin: 0 0 10px; }
+  [hidden] { display: none !important; }
+  .tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--border); margin-bottom: 16px; flex-wrap: wrap; }
+  button.tab { border: none; border-bottom: 3px solid transparent; border-radius: 0; background: none; padding: 8px 14px; font-size: .95rem; color: var(--muted); }
+  button.tab.on { border-bottom-color: var(--accent); color: var(--text); font-weight: 600; background: none; }
+  select { font: inherit; font-size: .85rem; color: var(--text); background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 5px 8px; }
+  table.t.m th[data-k] { cursor: pointer; user-select: none; }
+  table.t.m th[data-k]:hover { color: var(--text); }
+  table.t.m th.sorted { color: var(--text); }
+  table.t.m td.c1, table.t.m th.c1 { position: sticky; left: 0; background: var(--card); z-index: 1; }
+  table.t.m td small { color: var(--muted); font-size: .68rem; margin-left: 2px; }
+  table.t.m td.proj { font-style: italic; }
+  table.t.m tr.out td { opacity: .6; }
   .chead { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 4px; }
   .chead h2 { margin: 0; }
   .src { color: var(--muted); font-size: .75rem; margin-top: 8px; }
@@ -76,6 +88,12 @@
   <h1>Riesgo país · EMBI Latinoamérica</h1>
   <div class="sub" id="sub">Cargando datos…</div>
 
+  <div class="tabs" role="tablist">
+    <button class="tab on" data-tab="spread" role="tab">Spreads y calificaciones</button>
+    <button class="tab" data-tab="macro" role="tab">Comparativo macro</button>
+  </div>
+
+  <section id="tab-spread">
   <div class="kpis" id="kpis"></div>
 
   <div class="card">
@@ -142,6 +160,42 @@
     </div>
   </div>
 
+  </section>
+
+  <section id="tab-macro" hidden>
+    <div class="card">
+      <div class="chead">
+        <h2>Cuadro comparativo macroeconómico</h2>
+        <button id="mcsv">Descargar CSV</button>
+      </div>
+      <div class="row">
+        <label class="t">Indicadores</label>
+        <span id="mgroups"></span>
+        <label class="t" style="margin-left:10px" for="myear">Año de los datos del FMI</label>
+        <select id="myear"></select>
+      </div>
+      <div class="note" id="mnote">Cargando datos macro…</div>
+      <div class="tablewrap"><table class="t" id="mtbl"></table></div>
+      <div class="src">Fuente: Elaboración propia en base a fuentes del mercado (Banco Mundial, FMI, BCRD y agencias de calificación).</div>
+    </div>
+
+    <div class="card">
+      <div class="chead">
+        <h2 id="mchtitle">Comparación por país</h2>
+        <button class="png" data-chart="macro">Exportar PNG</button>
+      </div>
+      <div class="row">
+        <label class="t" for="mind">Indicador</label>
+        <select id="mind"></select>
+        <button data-mm="bar">Barras por país</button>
+        <button data-mm="xy">Contra el spread</button>
+      </div>
+      <div class="note" id="mchnote"></div>
+      <div class="chart-box" id="mbox" style="height:auto"><canvas id="macro"></canvas></div>
+      <div class="src">Fuente: Elaboración propia en base a fuentes del mercado.</div>
+    </div>
+  </section>
+
   <footer>
     Spreads: <a href="https://www.bcrd.gob.do/" target="_blank" rel="noopener">Banco Central de la República Dominicana</a>
     (serie histórica del spread del EMBI, convertida a puntos básicos).
@@ -200,7 +254,7 @@
     $('sub').textContent = `Serie diaria ${fmtDate(d.dates[0])} → ${fmtDate(S.to)} · ${S.names.length} series`;
     $('origin').textContent = d.meta.origin === 'snapshot' ? ' · Mostrando copia guardada (el BCRD no respondió).' : '';
     S.rankSel = new Set(S.names.filter((n) => !isVen(n) && !(d.meta.aggregates || []).includes(n)));
-    buildRanges(); buildChips(); buildRankChips(); setRange(60); bind();
+    buildRanges(); buildChips(); buildRankChips(); setRange(60); bind(); bindMacro();
     loadRatings().then(() => { buildGroupBtns(); render(); });
   }
 
@@ -430,9 +484,10 @@
 
   // ---------- Exportar PNG ----------
   function exportPNG(id) {
-    const ch = { chart, rank, scatter: scat, groups: grp }[id];
+    const ch = { chart, rank, scatter: scat, groups: grp, macro: mchart }[id];
     if (!ch) return;
     const titles = {
+      macro: () => $('mchtitle').textContent,
       chart: () => (S.base ? 'Spread EMBI – índice base 100' : 'Spread EMBI (pb)') + ` · ${fmtDate(S.from)} a ${fmtDate(S.to)}`,
       rank: () => 'Último dato disponible de spread EMBI por país (pb)',
       scatter: () => 'Nivel de spread vs. nota crediticia',
@@ -593,6 +648,170 @@
     $('grptbl').innerHTML = '<thead><tr><th class="l">Grupo</th><th>Países</th><th>Spread prom. (pb)</th><th>Δ 30 d</th><th>Δ período (pb)</th><th>Δ período (%)</th></tr></thead><tbody>' +
       sums.map((s) => `<tr><td class="l"><span class="badge" style="background:${GROUP_COLOR[s.g]}">${s.g}</span></td><td>${s.n}</td><td>${s.last == null ? '–' : fmt.format(s.last)}</td>
         <td class="${cls(s.d30)}">${sgn(s.d30)}</td><td class="${cls(s.dp)}">${sgn(s.dp)}</td><td class="${cls(s.pct)}">${s.pct == null ? '–' : fmt1.format(s.pct) + '%'}</td></tr>`).join('') + '</tbody>';
+  }
+
+  // ---------- Pestaña macro (Banco Mundial + FMI) ----------
+  const M = { data: null, loading: false, group: 'Todos', year: null, sort: { k: 'rating', dir: 1 }, ind: 'fiscal', mode: 'bar' };
+  let mchart = null;
+  const IND = () => Object.fromEntries(M.data.meta.indicators.map((i) => [i.key, i]));
+  const spreadOf = (n) => { const v = S.data.series[n]; const li = v ? lastIdx(v) : -1; return li < 0 ? null : v[li]; };
+
+  function mval(name, key) {
+    const ind = IND()[key], s = M.data.countries[name] && M.data.countries[name].values[key];
+    if (!s) return null;
+    if (ind.kind === 'weo') return s[M.year] != null ? { v: s[M.year], y: M.year } : null;
+    const ys = Object.keys(s).map(Number).sort((a, b) => b - a);
+    return ys.length ? { v: s[ys[0]], y: ys[0] } : null;
+  }
+  function fmtVal(ind, v) {
+    if (v == null) return '–';
+    const f = new Intl.NumberFormat('es-AR', { minimumFractionDigits: ind.dec, maximumFractionDigits: ind.dec }).format(v);
+    return ind.unit === 'pct' ? f + '%' : ind.unit === 'usd' ? 'US$ ' + f : f + ' m';
+  }
+
+  async function loadMacro() {
+    if (M.data || M.loading) return;
+    M.loading = true;
+    try {
+      const r = await fetch('/api/macro'); const j = await r.json();
+      if (!r.ok || !j.countries) throw new Error(j.error || 'HTTP ' + r.status);
+      M.data = j;
+      const yrs = j.meta.imfYears.filter((y) => y <= j.meta.refYear + 4);
+      const def = yrs.includes(j.meta.refYear - 1) ? j.meta.refYear - 1 : yrs[yrs.length - 1];
+      M.year = def;
+      $('myear').innerHTML = yrs.map((y) => `<option value="${y}"${y === def ? ' selected' : ''}>${y}${y >= j.meta.refYear ? ' (est./proy.)' : ''}</option>`).join('');
+      $('mind').innerHTML = j.meta.indicators.map((i) => `<option value="${i.key}">${i.label}</option>`).join('');
+      $('mind').value = M.ind;
+      const groups = ['Todos', ...new Set(j.meta.indicators.map((i) => i.group))];
+      $('mgroups').innerHTML = groups.map((g) => `<button data-mg="${g}">${g}</button>`).join(' ');
+    } catch (e) {
+      $('mnote').innerHTML = '<span class="err">No se pudieron cargar los datos macro: ' + e.message + '. Corré «npm run update-data» para generar el respaldo data/macro.json.</span>';
+    }
+    M.loading = false;
+    renderMacro();
+  }
+
+  function macroRows() {
+    const ind = IND();
+    const keys = M.data.meta.indicators.filter((i) => M.group === 'Todos' || i.group === M.group).map((i) => i.key);
+    const rows = S.names.filter((n) => M.data.countries[n]).map((n) => {
+      const rt = ratingOf(n);
+      return { n, spread: spreadOf(n), rt, score: rt ? rt.score : null, vals: Object.fromEntries(keys.map((k) => [k, mval(n, k)])) };
+    });
+    const { k, dir } = M.sort;
+    const get = (r) => (k === 'name' ? r.n : k === 'spread' ? r.spread : k === 'rating' ? r.score : r.vals[k] ? r.vals[k].v : null);
+    rows.sort((a, b) => { const x = get(a), y = get(b); if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return (typeof x === 'string' ? x.localeCompare(y) : x - y) * dir; });
+    return { rows, keys, ind };
+  }
+
+  function renderMacro() {
+    if (!M.data || !S.data) return;
+    const m = M.data.meta;
+    $('mnote').className = 'note' + (m.origin === 'snapshot' || (m.stale || []).length ? ' warn' : '');
+    $('mnote').innerHTML = `Banco Mundial: último dato observado de cada país (año en gris). FMI (WEO): año ${M.year}${M.year >= m.refYear ? ' — estimación/proyección (cursiva)' : ''}. ` +
+      `Datos generados el ${fmtDate((m.generatedAt || '').slice(0, 10))}.` +
+      (m.origin === 'snapshot' ? ' Copia guardada: la fuente en vivo no respondió.' : '') +
+      ((m.stale || []).length ? ` Sin actualizar en esta corrida: ${m.stale.join(', ')}.` : '') +
+      ' Venezuela no tiene calificación vigente y su spread es atípico; se muestra atenuada y no entra en los gráficos.';
+    document.querySelectorAll('#mgroups button').forEach((b) => b.classList.toggle('on', b.dataset.mg === M.group));
+    document.querySelectorAll('[data-mm]').forEach((b) => b.classList.toggle('on', b.dataset.mm === M.mode));
+
+    const { rows, keys, ind } = macroRows();
+    const arrow = (k) => (M.sort.k === k ? (M.sort.dir > 0 ? ' ▲' : ' ▼') : '');
+    const th = (k, label, title, extra = '') => `<th data-k="${k}" class="${extra}${M.sort.k === k ? ' sorted' : ''}" title="${title}">${label}${arrow(k)}</th>`;
+    $('mtbl').className = 't m';
+    $('mtbl').innerHTML = '<thead><tr>' + th('name', 'País', 'Ordenar por país', 'c1 l') + th('rating', 'Calificación', 'Nota promedio S&P/Moody\'s/Fitch (menor = mejor)', 'l') +
+      th('spread', 'Spread (pb)', 'Último dato disponible del EMBI') +
+      keys.map((k) => th(k, ind[k].short, `${ind[k].label} · ${ind[k].src === 'wb' ? 'Banco Mundial' : 'FMI'}${ind[k].note ? ' · ' + ind[k].note : ''}`)).join('') + '</tr></thead><tbody>' +
+      rows.map((r) => `<tr class="${isVen(r.n) ? 'out' : ''}"><td class="c1 l">${r.n}</td>
+        <td class="l">${r.rt && r.rt.composite ? `<span class="badge" style="background:${GROUP_COLOR[r.rt.group] || '#8b95a5'}">${r.rt.composite}</span>` : '–'}</td>
+        <td>${r.spread == null ? '–' : fmt.format(r.spread)}</td>` +
+        keys.map((k) => { const c = r.vals[k], i = ind[k];
+          const proj = i.kind === 'weo' && c && c.y >= M.data.meta.refYear;
+          return `<td class="${proj ? 'proj' : ''}">${c ? fmtVal(i, c.v) + (i.kind === 'obs' ? `<small>${c.y}</small>` : '') : '–'}</td>`; }).join('') + '</tr>').join('') + '</tbody>';
+
+    renderMacroChart();
+  }
+
+  function renderMacroChart() {
+    const ind = IND()[M.ind]; if (!ind) return;
+    const text = css('--muted'), grid = css('--grid');
+    // Excluye Venezuela (outlier) y países sin dato
+    const pts = S.names.filter((n) => M.data.countries[n] && !isVen(n) && !(S.data.meta.aggregates || []).includes(n))
+      .map((n) => ({ n, c: mval(n, M.ind), s: spreadOf(n) })).filter((p) => p.c && p.s != null);
+    const yearTxt = ind.kind === 'weo' ? String(M.year) : 'último dato disponible';
+    $('mchtitle').textContent = `${ind.label} · ${yearTxt}`;
+    if (mchart) mchart.destroy();
+    const box = $('mbox');
+    if (!pts.length) { $('mchnote').textContent = 'Sin datos para este indicador.'; box.style.height = '120px'; mchart = null; return; }
+
+    if (M.mode === 'bar') {
+      pts.sort((a, b) => b.c.v - a.c.v);
+      box.style.height = Math.max(200, pts.length * 28 + 60) + 'px';
+      $('mchnote').textContent = `${pts.length} países con dato (Venezuela excluida). Las etiquetas muestran el valor de cada barra.`;
+      const labels = { id: 'mlabels', afterDatasetsDraw(ch) {
+        const meta = ch.getDatasetMeta(0), c = ch.ctx; c.save(); c.font = '11px system-ui, sans-serif'; c.fillStyle = css('--text'); c.textBaseline = 'middle';
+        meta.data.forEach((bar, i) => { if (!pts[i]) return; const v = pts[i].c.v; c.textAlign = v >= 0 ? 'left' : 'right'; c.fillText(fmtVal(ind, v) + (ind.kind === 'obs' ? ` (${pts[i].c.y})` : ''), bar.x + (v >= 0 ? 6 : -6), bar.y); });
+        c.restore(); } };
+      mchart = new Chart($('macro'), {
+        type: 'bar',
+        data: { labels: pts.map((p) => p.n), datasets: [{ data: pts.map((p) => p.c.v), backgroundColor: pts.map((p) => S.color[p.n]), borderRadius: 3 }] },
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: false, layout: { padding: { right: 90, left: 4 } },
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => ` ${fmtVal(ind, c.parsed.x)}` } } },
+          scales: { x: { title: { display: true, text: ind.label, color: text }, ticks: { color: text }, grid: { color: grid } }, y: { ticks: { color: text }, grid: { display: false } } } },
+        plugins: [labels],
+      });
+    } else {
+      box.style.height = '460px';
+      const n = pts.length, xs = pts.map((p) => p.c.v), ys = pts.map((p) => p.s);
+      const mx = xs.reduce((a, b) => a + b, 0) / n, my = ys.reduce((a, b) => a + b, 0) / n;
+      let sxy = 0, sxx = 0, syy = 0; xs.forEach((x, i) => { sxy += (x - mx) * (ys[i] - my); sxx += (x - mx) ** 2; syy += (ys[i] - my) ** 2; });
+      const r = sxx && syy ? sxy / Math.sqrt(sxx * syy) : null, b = sxx ? sxy / sxx : 0, a = my - b * mx;
+      const xmin = Math.min(...xs), xmax = Math.max(...xs);
+      $('mchnote').textContent = `Cada punto es un país (Venezuela excluida; n = ${n}). ` + (r == null ? '' : `Correlación lineal con el spread: ${r.toFixed(2).replace('.', ',')}. `) + 'Es una correlación simple entre países, no implica causalidad.';
+      const labels = { id: 'xylabels', afterDatasetsDraw(ch) {
+        const meta = ch.getDatasetMeta(0), c = ch.ctx; c.save(); c.font = '11px system-ui, sans-serif'; c.fillStyle = css('--text');
+        meta.data.forEach((pt, i) => c.fillText(pts[i].n, pt.x + 7, pt.y + 3)); c.restore(); } };
+      mchart = new Chart($('macro'), {
+        type: 'scatter',
+        data: { datasets: [
+          { data: pts.map((p) => ({ x: p.c.v, y: p.s })), pointRadius: 6, pointHoverRadius: 8, backgroundColor: pts.map((p) => S.color[p.n]), borderColor: pts.map((p) => S.color[p.n]) },
+          { type: 'line', data: [{ x: xmin, y: a + b * xmin }, { x: xmax, y: a + b * xmax }], borderColor: text, borderDash: [5, 4], borderWidth: 1.2, pointRadius: 0 },
+        ] },
+        options: { responsive: true, maintainAspectRatio: false, animation: false,
+          plugins: { legend: { display: false }, tooltip: { filter: (i) => i.datasetIndex === 0, callbacks: {
+            title: (it) => pts[it[0].dataIndex].n, label: (c) => [` ${ind.short}: ${fmtVal(ind, c.parsed.x)}`, ` Spread: ${fmt.format(c.parsed.y)} pb`] } } },
+          scales: { x: { title: { display: true, text: ind.label, color: text }, ticks: { color: text }, grid: { color: grid } },
+                    y: { beginAtZero: false, grace: '5%', title: { display: true, text: 'Spread EMBI (pb, último dato)', color: text }, ticks: { color: text, callback: (v) => fmt.format(v) }, grid: { color: grid } } } },
+        plugins: [labels],
+      });
+    }
+  }
+
+  function bindMacro() {
+    document.querySelectorAll('button.tab').forEach((b) => b.addEventListener('click', () => {
+      document.querySelectorAll('button.tab').forEach((x) => x.classList.toggle('on', x === b));
+      $('tab-spread').hidden = b.dataset.tab !== 'spread';
+      $('tab-macro').hidden = b.dataset.tab !== 'macro';
+      if (b.dataset.tab === 'macro') { M.data ? renderMacro() : loadMacro(); } else render();
+    }));
+    $('mgroups').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { M.group = b.dataset.mg; renderMacro(); } });
+    $('myear').addEventListener('change', () => { M.year = +$('myear').value; renderMacro(); });
+    $('mind').addEventListener('change', () => { M.ind = $('mind').value; renderMacroChart(); });
+    document.querySelectorAll('[data-mm]').forEach((b) => b.addEventListener('click', () => { M.mode = b.dataset.mm; renderMacro(); }));
+    $('mtbl').addEventListener('click', (e) => {
+      const t = e.target.closest('th[data-k]'); if (!t) return;
+      const k = t.dataset.k; M.sort = { k, dir: M.sort.k === k ? -M.sort.dir : (k === 'name' || k === 'rating' ? 1 : -1) }; renderMacro();
+    });
+    $('mcsv').addEventListener('click', () => {
+      const { rows, keys, ind } = macroRows();
+      const head = ['pais', 'calificacion_promedio', 'spread_pb', ...keys.map((k) => `${ind[k].label} [${ind[k].src === 'wb' ? 'BM' : 'FMI'}]`), ...keys.map((k) => `anio_${k}`)];
+      const q = (s) => `"${String(s).replace(/"/g, '""')}"`;
+      const lines = [head.map(q).join(',')].concat(rows.map((r) => [q(r.n), r.rt && r.rt.composite ? r.rt.composite : '', r.spread == null ? '' : Math.round(r.spread),
+        ...keys.map((k) => (r.vals[k] ? r.vals[k].v : '')), ...keys.map((k) => (r.vals[k] ? r.vals[k].y : ''))].join(',')));
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' })); a.download = 'macro_comparativo.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    });
   }
 
   function downloadCSV() {
