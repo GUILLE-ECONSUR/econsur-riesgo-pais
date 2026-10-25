@@ -4,7 +4,9 @@ Descarga la serie histórica del spread del EMBI (Argentina y Latinoamérica) pu
 
 ## Qué incluye
 
-- **Gráfico de spreads**: selector de países, períodos (3M a Máx), rango de fechas, escala log, tarjetas con último valor y variaciones, ranking por país y CSV.
+- **Gráfico de líneas**: selector de países, períodos (3M a Máx), rango de fechas, **índice base 100** (primer dato de cada serie en el período), escala log y eje Y ajustado a los datos visibles, tarjetas con último valor y variaciones, y CSV.
+- **Barras horizontales**: último dato disponible de spread por país, con etiqueta en cada barra, selector propio de países y sin Venezuela (outlier). Los índices EMBI Global/Latino se pueden agregar con un botón.
+- **Todos los gráficos** llevan la fuente («Elaboración propia en base a fuentes del mercado») y un botón **Exportar PNG** (el PNG incluye título, período y fuente).
 - **Comparación por calificación**: tabla con notas de las tres agencias (con perspectiva y antigüedad), nota promedio, grupo (Grado de inversión / BB / B / CCC o inferior), spread, variación a 30 días y en el período elegido, spread «esperado» según la nota y desvío; gráfico de dispersión nivel vs. nota; spread promedio por grupo en el tiempo.
 - **API `/api/embi`**: descarga el Excel del BCRD y devuelve JSON (convierte puntos porcentuales a puntos básicos).
 - **API `/api/ratings`**: calificaciones actualizadas, desde las tablas de Wikipedia (ver «Calificaciones»).

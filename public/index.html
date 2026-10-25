@@ -50,6 +50,10 @@
   footer { color: var(--muted); font-size: .8rem; margin-top: 8px; }
   footer a { color: var(--accent); }
   h2 { font-size: 1rem; margin: 0 0 10px; }
+  .chead { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 4px; }
+  .chead h2 { margin: 0; }
+  .src { color: var(--muted); font-size: .75rem; margin-top: 8px; }
+  button.png { white-space: nowrap; }
   .tablewrap { overflow-x: auto; }
   table.t { border-collapse: collapse; width: 100%; font-size: .85rem; font-variant-numeric: tabular-nums; }
   table.t th, table.t td { padding: 6px 10px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
@@ -80,8 +84,10 @@
       <span id="ranges"></span>
       <label class="t" style="margin-left:10px">Desde</label><input type="date" id="from">
       <label class="t">Hasta</label><input type="date" id="to">
+      <button id="basebtn" title="Índice base 100 = primer dato disponible de cada serie en el período">Base 100</button>
       <button id="logbtn" title="Escala logarítmica">Log</button>
       <button id="csv">Descargar CSV</button>
+      <button class="png" data-chart="chart">Exportar PNG</button>
     </div>
     <div class="row">
       <label class="t">Países</label>
@@ -93,11 +99,25 @@
     </div>
     <div class="chips" id="chips" style="margin-bottom:14px"></div>
     <div class="chart-box"><canvas id="chart"></canvas></div>
+    <div class="src">Fuente: Elaboración propia en base a fuentes del mercado.</div>
   </div>
 
   <div class="card">
-    <h2>Último dato disponible por país <span id="rankdate" style="color:var(--muted);font-weight:400"></span></h2>
+    <div class="chead">
+      <h2>Último dato disponible por país <span id="rankdate" style="color:var(--muted);font-weight:400"></span></h2>
+      <button class="png" data-chart="rank">Exportar PNG</button>
+    </div>
+    <div class="row">
+      <label class="t">Países</label>
+      <button data-rank="all">Todos</button>
+      <button data-rank="none">Ninguno</button>
+      <button data-rank="line">Los del gráfico de líneas</button>
+      <button data-rank="agg" title="Agregar o quitar los índices EMBI Global y EMBI Latino">Índices EMBI</button>
+    </div>
+    <div class="chips" id="rankchips" style="margin-bottom:12px"></div>
+    <div class="note">Venezuela no se incluye: su spread es un valor atípico que distorsiona la escala.</div>
     <div class="chart-box" id="rankbox" style="height:auto"><canvas id="rank"></canvas></div>
+    <div class="src">Fuente: Elaboración propia en base a fuentes del mercado.</div>
   </div>
 
   <div class="card" id="cmp">
@@ -108,14 +128,16 @@
 
   <div class="grid2" id="cmpcharts" style="margin-bottom:16px">
     <div class="card">
-      <h2>Nivel de spread vs. nota crediticia</h2>
+      <div class="chead"><h2>Nivel de spread vs. nota crediticia</h2><button class="png" data-chart="scatter">Exportar PNG</button></div>
       <div class="note">Cada punto es un país (nota promedio de las agencias). La línea es un ajuste log-lineal simple: ilustra el spread «esperado» por nota, no es un modelo de valuación.</div>
       <div class="chart-box" style="height:380px"><canvas id="scatter"></canvas></div>
+      <div class="src">Fuente: Elaboración propia en base a fuentes del mercado.</div>
     </div>
     <div class="card">
-      <h2>Spread promedio por grupo de calificación</h2>
+      <div class="chead"><h2>Spread promedio por grupo de calificación</h2><button class="png" data-chart="groups">Exportar PNG</button></div>
       <div class="note">Promedio simple de los países de cada grupo según su calificación <b>actual</b> aplicada a todo el período.</div>
       <div class="chart-box" style="height:300px"><canvas id="groups"></canvas></div>
+      <div class="src">Fuente: Elaboración propia en base a fuentes del mercado.</div>
       <div class="tablewrap" style="margin-top:10px"><table class="t" id="grptbl"></table></div>
     </div>
   </div>
@@ -137,8 +159,11 @@
   const RANGES = [['3M',3],['6M',6],['1A',12],['3A',36],['5A',60],['10A',120],['Máx',0]];
   const fmt = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 });
   const fmt1 = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1, signDisplay: 'exceptZero' });
+  const fmt1d = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 });
 
-  const S = { data: null, ratings: null, names: [], color: {}, selected: new Set(), months: 60, log: false, from: '', to: '' };
+  const S = { data: null, ratings: null, names: [], color: {}, selected: new Set(), rankSel: new Set(), months: 60, log: false, base: false, from: '', to: '' };
+  const isVen = (n) => /venezuela/i.test(n);
+  const SOURCE_TEXT = 'Fuente: Elaboración propia en base a fuentes del mercado.';
   let chart = null, rank = null;
   const $ = (id) => document.getElementById(id);
   const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
@@ -174,7 +199,8 @@
     S.to = d.dates[d.dates.length - 1];
     $('sub').textContent = `Serie diaria ${fmtDate(d.dates[0])} → ${fmtDate(S.to)} · ${S.names.length} series`;
     $('origin').textContent = d.meta.origin === 'snapshot' ? ' · Mostrando copia guardada (el BCRD no respondió).' : '';
-    buildRanges(); buildChips(); setRange(60); bind();
+    S.rankSel = new Set(S.names.filter((n) => !isVen(n) && !(d.meta.aggregates || []).includes(n)));
+    buildRanges(); buildChips(); buildRankChips(); setRange(60); bind();
     loadRatings().then(() => { buildGroupBtns(); render(); });
   }
 
@@ -223,6 +249,16 @@
     $('from').min = $('to').min = S.data.dates[0]; $('from').max = $('to').max = S.data.dates[S.data.dates.length - 1];
     document.querySelectorAll('#ranges button').forEach((b) => b.classList.toggle('on', S.months !== null && +b.dataset.m === S.months));
     $('logbtn').classList.toggle('on', S.log);
+    $('basebtn').classList.toggle('on', S.base);
+  }
+
+  function buildRankChips() {
+    $('rankchips').innerHTML = S.names.filter((n) => !isVen(n)).map((n) =>
+      `<span class="chip" data-n="${n.replace(/"/g, '&quot;')}"><i></i>${n}</span>`).join('');
+    $('rankchips').addEventListener('click', (e) => {
+      const c = e.target.closest('.chip'); if (!c) return;
+      const n = c.dataset.n; S.rankSel.has(n) ? S.rankSel.delete(n) : S.rankSel.add(n); renderRank();
+    });
   }
 
   function buildChips() {
@@ -238,7 +274,17 @@
     $('from').addEventListener('change', () => { if ($('from').value) { S.from = $('from').value; S.months = null; syncInputs(); render(); } });
     $('to').addEventListener('change', () => { if ($('to').value) { S.to = $('to').value; S.months = null; syncInputs(); render(); } });
     $('logbtn').addEventListener('click', () => { S.log = !S.log; syncInputs(); render(); });
+    $('basebtn').addEventListener('click', () => { S.base = !S.base; syncInputs(); renderChart(); });
     $('csv').addEventListener('click', downloadCSV);
+    document.querySelectorAll('button.png').forEach((b) => b.addEventListener('click', () => exportPNG(b.dataset.chart)));
+    document.querySelectorAll('[data-rank]').forEach((b) => b.addEventListener('click', () => {
+      const p = b.dataset.rank, aggs = S.data.meta.aggregates || [];
+      if (p === 'all') S.rankSel = new Set(S.names.filter((n) => !isVen(n) && !aggs.includes(n)));
+      else if (p === 'none') S.rankSel = new Set();
+      else if (p === 'line') S.rankSel = new Set([...S.selected].filter((n) => !isVen(n)));
+      else if (p === 'agg') { const on = aggs.every((n) => S.rankSel.has(n)); aggs.forEach((n) => (on ? S.rankSel.delete(n) : S.rankSel.add(n))); }
+      renderRank();
+    }));
     document.querySelectorAll('[data-preset]').forEach((b) => b.addEventListener('click', () => {
       const p = b.dataset.preset;
       S.selected = new Set(p === 'all' ? S.names : p === 'none' ? [] : p === 'arg' ? S.names.filter(isArg) : S.names.filter((n) => MAIN.test(n)));
@@ -263,7 +309,7 @@
   }
 
   function renderChips() {
-    document.querySelectorAll('.chip').forEach((c) => {
+    document.querySelectorAll('#chips .chip').forEach((c) => {
       const on = S.selected.has(c.dataset.n);
       c.classList.toggle('on', on);
       c.firstChild.style.background = on ? S.color[c.dataset.n] : '';
@@ -293,13 +339,24 @@
 
   function renderChart() {
     const { dates, series } = S.data;
-    const { idx } = indices();
+    const { idx, i0, i1 } = indices();
     const labels = idx.map((i) => dates[i]);
     const text = css('--muted'), grid = css('--grid');
-    const datasets = [...S.selected].map((n) => ({
-      label: n, data: idx.map((i) => series[n][i]), borderColor: S.color[n], backgroundColor: S.color[n],
-      borderWidth: isArg(n) ? 2.4 : 1.6, pointRadius: 0, pointHoverRadius: 3, tension: 0, spanGaps: true,
-    }));
+    // Base 100: primer dato disponible de cada serie dentro del período mostrado
+    const baseOf = (n) => { for (let i = i0; i <= i1; i++) if (series[n][i] != null && series[n][i] !== 0) return series[n][i]; return null; };
+    const datasets = [...S.selected].map((n) => {
+      const b = S.base ? baseOf(n) : 1;
+      return {
+        label: n, data: idx.map((i) => { const v = series[n][i]; return v == null || b == null ? null : S.base ? (v / b) * 100 : v; }),
+        borderColor: S.color[n], backgroundColor: S.color[n],
+        borderWidth: isArg(n) ? 2.4 : 1.6, pointRadius: 0, pointHoverRadius: 3, tension: 0, spanGaps: true,
+      };
+    });
+    const baseLine = { id: 'baseline', afterDatasetsDraw(ch) {
+      if (!S.base) return; const y = ch.scales.y; if (!y) return;
+      const py = y.getPixelForValue(100), a = ch.chartArea; if (py < a.top || py > a.bottom) return;
+      const c = ch.ctx; c.save(); c.setLineDash([4, 4]); c.strokeStyle = css('--muted'); c.lineWidth = 1;
+      c.beginPath(); c.moveTo(a.left, py); c.lineTo(a.right, py); c.stroke(); c.restore(); } };
     if (chart) chart.destroy();
     chart = new Chart($('chart'), {
       type: 'line',
@@ -313,41 +370,90 @@
             itemSort: (a, b) => (b.parsed.y ?? -1) - (a.parsed.y ?? -1),
             callbacks: {
               title: (it) => fmtDate(it[0].label),
-              label: (c) => ` ${c.dataset.label}: ${c.parsed.y == null ? '–' : fmt.format(c.parsed.y)} pb`,
+              label: (c) => {
+                if (c.parsed.y == null) return ` ${c.dataset.label}: –`;
+                const raw = series[c.dataset.label][idx[c.dataIndex]];
+                return S.base ? ` ${c.dataset.label}: ${fmt1d.format(c.parsed.y)} (${fmt.format(raw)} pb)` : ` ${c.dataset.label}: ${fmt.format(c.parsed.y)} pb`;
+              },
             },
           },
         },
         scales: {
           x: { ticks: { color: text, maxTicksLimit: 9, maxRotation: 0, callback(v) { const l = this.getLabelForValue(v); return l.slice(0, 4) + '-' + l.slice(5, 7); } }, grid: { color: grid } },
-          y: { type: S.log ? 'logarithmic' : 'linear', beginAtZero: !S.log, title: { display: true, text: 'Spread (pb)', color: text },
-               ticks: { color: text, callback: (v) => fmt.format(v) }, grid: { color: grid } },
+          // Eje Y ajustado a los datos visibles (sin forzar el cero) con un 5 % de margen
+          y: { type: S.log ? 'logarithmic' : 'linear', beginAtZero: false, grace: S.log ? 0 : '5%',
+               title: { display: true, text: S.base ? `Índice (base 100 = primer dato del período, ${fmtDate(S.from)})` : 'Spread (pb)', color: text },
+               ticks: { color: text, callback: (v) => (S.base ? fmt1d.format(v) : fmt.format(v)) }, grid: { color: grid } },
         },
       },
+      plugins: [baseLine],
     });
   }
 
   function renderRank() {
     const { dates, series } = S.data;
-    const rows = S.names.map((n) => { const li = lastIdx(series[n]); return li < 0 ? null : { n, v: series[n][li], d: dates[li] }; })
+    document.querySelectorAll('#rankchips .chip').forEach((c) => {
+      const on = S.rankSel.has(c.dataset.n);
+      c.classList.toggle('on', on);
+      c.firstChild.style.background = on ? S.color[c.dataset.n] : '';
+    });
+    // Último dato disponible de cada serie seleccionada (Venezuela queda siempre afuera: outlier)
+    const rows = S.names.filter((n) => S.rankSel.has(n) && !isVen(n))
+      .map((n) => { const li = lastIdx(series[n]); return li < 0 ? null : { n, v: series[n][li], d: dates[li] }; })
       .filter(Boolean).sort((a, b) => b.v - a.v);
-    $('rankdate').textContent = rows.length ? '· al ' + fmtDate(rows.map((r) => r.d).sort().pop()) : '';
-    $('rankbox').style.height = Math.max(160, rows.length * 24 + 50) + 'px';
+    $('rankdate').textContent = rows.length ? '· al ' + fmtDate(rows.map((r) => r.d).sort().pop()) : '· sin países seleccionados';
+    $('rankbox').style.height = Math.max(160, rows.length * 26 + 50) + 'px';
     const text = css('--muted'), grid = css('--grid');
+    const valueLabels = { id: 'valuelabels', afterDatasetsDraw(ch) {
+      const meta = ch.getDatasetMeta(0), c = ch.ctx;
+      c.save(); c.font = '11px system-ui, sans-serif'; c.fillStyle = css('--text'); c.textBaseline = 'middle';
+      meta.data.forEach((bar, i) => { if (rows[i]) c.fillText(fmt.format(rows[i].v) + ' pb', bar.x + 6, bar.y); });
+      c.restore(); } };
     if (rank) rank.destroy();
     rank = new Chart($('rank'), {
       type: 'bar',
       data: { labels: rows.map((r) => r.n), datasets: [{
         data: rows.map((r) => r.v),
-        backgroundColor: rows.map((r) => (S.selected.has(r.n) ? S.color[r.n] : css('--border'))),
+        backgroundColor: rows.map((r) => S.color[r.n]),
         borderRadius: 3,
       }] },
       options: {
         indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: false,
+        layout: { padding: { right: 64 } },
         plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => ` ${fmt.format(c.parsed.x)} pb (${fmtDate(rows[c.dataIndex].d)})` } } },
-        scales: { x: { ticks: { color: text, callback: (v) => fmt.format(v) }, grid: { color: grid } }, y: { ticks: { color: text }, grid: { display: false } } },
-        onClick: (_, els) => { if (els.length) { const n = rows[els[0].index].n; S.selected.has(n) ? S.selected.delete(n) : S.selected.add(n); render(); } },
+        scales: { x: { beginAtZero: true, title: { display: true, text: 'Spread (pb)', color: text }, ticks: { color: text, callback: (v) => fmt.format(v) }, grid: { color: grid } }, y: { ticks: { color: text }, grid: { display: false } } },
+        onClick: (_, els) => { if (els.length) { S.rankSel.delete(rows[els[0].index].n); renderRank(); } },
       },
+      plugins: [valueLabels],
     });
+  }
+
+  // ---------- Exportar PNG ----------
+  function exportPNG(id) {
+    const ch = { chart, rank, scatter: scat, groups: grp }[id];
+    if (!ch) return;
+    const titles = {
+      chart: () => (S.base ? 'Spread EMBI – índice base 100' : 'Spread EMBI (pb)') + ` · ${fmtDate(S.from)} a ${fmtDate(S.to)}`,
+      rank: () => 'Último dato disponible de spread EMBI por país (pb)',
+      scatter: () => 'Nivel de spread vs. nota crediticia',
+      groups: () => `Spread promedio por grupo de calificación · ${fmtDate(S.from)} a ${fmtDate(S.to)}`,
+    };
+    const src = ch.canvas, s = src.width / ch.width || 1;
+    const padX = 16 * s, head = 46 * s, foot = 30 * s;
+    const out = document.createElement('canvas');
+    out.width = src.width + padX * 2; out.height = src.height + head + foot;
+    const c = out.getContext('2d');
+    c.fillStyle = css('--card') || '#ffffff'; c.fillRect(0, 0, out.width, out.height);
+    c.fillStyle = css('--text'); c.textBaseline = 'alphabetic';
+    c.font = `600 ${16 * s}px system-ui, sans-serif`; c.fillText(titles[id](), padX, 28 * s);
+    c.drawImage(src, padX, head);
+    c.fillStyle = css('--muted'); c.font = `${12 * s}px system-ui, sans-serif`;
+    c.fillText(SOURCE_TEXT, padX, head + src.height + 20 * s);
+    out.toBlob((blob) => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = `embi_${id}_${S.to}.png`; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }, 'image/png');
   }
 
   // ---------- Comparación por calificación ----------
@@ -469,7 +575,7 @@
           tooltip: { callbacks: { title: (it) => fmtDate(it[0].label), label: (c) => ` ${c.dataset.label}: ${c.parsed.y == null ? '–' : fmt.format(c.parsed.y)} pb` } } },
         scales: {
           x: { ticks: { color: text, maxTicksLimit: 7, maxRotation: 0, callback(v) { const l = this.getLabelForValue(v); return l.slice(0, 4) + '-' + l.slice(5, 7); } }, grid: { color: grid } },
-          y: { type: S.log ? 'logarithmic' : 'linear', beginAtZero: !S.log, title: { display: true, text: 'Spread promedio (pb)', color: text }, ticks: { color: text, callback: (v) => fmt.format(v) }, grid: { color: grid } },
+          y: { type: S.log ? 'logarithmic' : 'linear', beginAtZero: false, grace: S.log ? 0 : '5%', title: { display: true, text: 'Spread promedio (pb)', color: text }, ticks: { color: text, callback: (v) => fmt.format(v) }, grid: { color: grid } },
         },
       },
     });
