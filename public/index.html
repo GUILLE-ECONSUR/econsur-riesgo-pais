@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Riesgo país · EMBI Latinoamérica</title>
+<meta name="description" content="Spread del EMBI de Argentina y países latinoamericanos, con datos del BCRD.">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #f7f8fa; --card: #ffffff; --text: #1a1f2b; --muted: #667085; --border: #e3e7ee;
+    --grid: #e9edf3; --accent: #2563eb; --up: #c2410c; --down: #15803d;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f131a; --card: #171c26; --text: #e8ecf3; --muted: #9aa4b5; --border: #263041;
+      --grid: #232c3b; --accent: #6ea0ff; --up: #fb923c; --down: #4ade80;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 16px 48px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: .9rem; margin-bottom: 18px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .kpi { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; border-left-width: 4px; }
+  .kpi .name { font-size: .8rem; color: var(--muted); }
+  .kpi .val { font-size: 1.6rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .kpi .val small { font-size: .8rem; color: var(--muted); font-weight: 400; }
+  .kpi .chg { font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .up { color: var(--up); } .down { color: var(--down); }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .row label.t { color: var(--muted); font-size: .8rem; margin-right: 4px; }
+  button, input[type=date] {
+    font: inherit; font-size: .85rem; color: var(--text); background: var(--card);
+    border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border: 1px solid var(--border);
+          border-radius: 999px; font-size: .82rem; cursor: pointer; user-select: none; background: var(--card); }
+  .chip i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; background: var(--border); }
+  .chip.on { border-color: var(--text); }
+  .chart-box { position: relative; height: 440px; }
+  .msg { padding: 40px 0; text-align: center; color: var(--muted); }
+  .err { color: var(--up); }
+  footer { color: var(--muted); font-size: .8rem; margin-top: 8px; }
+  footer a { color: var(--accent); }
+  h2 { font-size: 1rem; margin: 0 0 10px; }
+  .tablewrap { overflow-x: auto; }
+  table.t { border-collapse: collapse; width: 100%; font-size: .85rem; font-variant-numeric: tabular-nums; }
+  table.t th, table.t td { padding: 6px 10px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  table.t th { color: var(--muted); font-weight: 500; font-size: .75rem; }
+  table.t th:first-child, table.t td:first-child, table.t td.l, table.t th.l { text-align: left; }
+  table.t tr.sel td:first-child { font-weight: 650; }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: .75rem; color: #fff; }
+  .rt { white-space: nowrap; } .rt.stale { opacity: .55; }
+  .ol-p { color: var(--down); } .ol-n { color: var(--up); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid2 .card { margin-bottom: 0; }
+  .note { color: var(--muted); font-size: .8rem; margin: 6px 0 12px; }
+  .note.warn { color: var(--up); }
+  @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } .grid2 .card { margin-bottom: 16px; } }
+  @media (max-width: 600px) { .chart-box { height: 340px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Riesgo país · EMBI Latinoamérica</h1>
+  <div class="sub" id="sub">Cargando datos…</div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="card">
+    <div class="row">
+      <label class="t">Período</label>
+      <span id="ranges"></span>
+      <label class="t" style="margin-left:10px">Desde</label><input type="date" id="from">
+      <label class="t">Hasta</label><input type="date" id="to">
+      <button id="logbtn" title="Escala logarítmica">Log</button>
+      <button id="csv">Descargar CSV</button>
+    </div>
+    <div class="row">
+      <label class="t">Países</label>
+      <button data-preset="arg">Solo Argentina</button>
+      <button data-preset="main">Principales</button>
+      <button data-preset="all">Todos</button>
+      <button data-preset="none">Ninguno</button>
+      <span id="groupbtns"></span>
+    </div>
+    <div class="chips" id="chips" style="margin-bottom:14px"></div>
+    <div class="chart-box"><canvas id="chart"></canvas></div>
+  </div>
+
+  <div class="card">
+    <h2>Último dato disponible por país <span id="rankdate" style="color:var(--muted);font-weight:400"></span></h2>
+    <div class="chart-box" id="rankbox" style="height:auto"><canvas id="rank"></canvas></div>
+  </div>
+
+  <div class="card" id="cmp">
+    <h2>Riesgo país según calificación crediticia</h2>
+    <div class="note" id="cmpnote">Cargando calificaciones…</div>
+    <div class="tablewrap"><table class="t" id="cmptbl"></table></div>
+  </div>
+
+  <div class="grid2" id="cmpcharts" style="margin-bottom:16px">
+    <div class="card">
+      <h2>Nivel de spread vs. nota crediticia</h2>
+      <div class="note">Cada punto es un país (nota promedio de las agencias). La línea es un ajuste log-lineal simple: ilustra el spread «esperado» por nota, no es un modelo de valuación.</div>
+      <div class="chart-box" style="height:380px"><canvas id="scatter"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Spread promedio por grupo de calificación</h2>
+      <div class="note">Promedio simple de los países de cada grupo según su calificación <b>actual</b> aplicada a todo el período.</div>
+      <div class="chart-box" style="height:300px"><canvas id="groups"></canvas></div>
+      <div class="tablewrap" style="margin-top:10px"><table class="t" id="grptbl"></table></div>
+    </div>
+  </div>
+
+  <footer>
+    Spreads: <a href="https://www.bcrd.gob.do/" target="_blank" rel="noopener">Banco Central de la República Dominicana</a>
+    (serie histórica del spread del EMBI, convertida a puntos básicos).
+    Calificaciones: S&amp;P, Moody's y Fitch según las tablas de
+    <a href="https://en.wikipedia.org/wiki/List_of_countries_by_credit_rating" target="_blank" rel="noopener">Wikipedia</a>
+    (fuente secundaria, con posible rezago frente a las agencias).
+    <span id="origin"></span>
+  </footer>
+</div>
+
+<script>
+(() => {
+  const PALETTE = ['#2563eb','#e11d48','#059669','#d97706','#7c3aed','#0891b2','#be185d','#65a30d','#9333ea','#ea580c','#0d9488','#4f46e5','#b45309','#475569','#db2777'];
+  const MAIN = /^(argentina|brasil|brazil|chile|colombia|m[eé]xico|per[uú])$/i;
+  const RANGES = [['3M',3],['6M',6],['1A',12],['3A',36],['5A',60],['10A',120],['Máx',0]];
+  const fmt = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 });
+  const fmt1 = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1, signDisplay: 'exceptZero' });
+
+  const S = { data: null, ratings: null, names: [], color: {}, selected: new Set(), months: 60, log: false, from: '', to: '' };
+  let chart = null, rank = null;
+  const $ = (id) => document.getElementById(id);
+  const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+  const isArg = (n) => /argentina/i.test(n);
+
+  function addDays(iso, d) {
+    const t = new Date(iso + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + d); return t.toISOString().slice(0, 10);
+  }
+  function addMonths(iso, m) {
+    const t = new Date(iso + 'T00:00:00Z'); t.setUTCMonth(t.getUTCMonth() - m); return t.toISOString().slice(0, 10);
+  }
+  function lowerBound(arr, x) { let lo = 0, hi = arr.length; while (lo < hi) { const m = (lo + hi) >> 1; arr[m] < x ? lo = m + 1 : hi = m; } return lo; }
+  function fmtDate(iso) { const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; }
+
+  function lastIdx(vals, upTo = vals.length - 1) { for (let i = upTo; i >= 0; i--) if (vals[i] != null) return i; return -1; }
+
+  async function load() {
+    try {
+      const r = await fetch('/api/embi');
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      S.data = await r.json();
+      if (!S.data.dates) throw new Error(S.data.error || 'Respuesta inesperada');
+    } catch (e) {
+      $('sub').innerHTML = '<span class="err">No se pudieron cargar los datos: ' + e.message + '</span>';
+      return;
+    }
+    const d = S.data;
+    S.names = d.meta.names;
+    S.names.forEach((n, i) => { S.color[n] = isArg(n) ? '#38bdf8' : PALETTE[i % PALETTE.length]; });
+    const arg = S.names.find(isArg);
+    if (arg) S.selected.add(arg); else if (S.names[0]) S.selected.add(S.names[0]);
+    S.to = d.dates[d.dates.length - 1];
+    $('sub').textContent = `Serie diaria ${fmtDate(d.dates[0])} → ${fmtDate(S.to)} · ${S.names.length} series`;
+    $('origin').textContent = d.meta.origin === 'snapshot' ? ' · Mostrando copia guardada (el BCRD no respondió).' : '';
+    buildRanges(); buildChips(); setRange(60); bind();
+    loadRatings().then(() => { buildGroupBtns(); render(); });
+  }
+
+  // ---------- Calificaciones ----------
+  const GROUPS = ['Grado de inversión', 'BB', 'B', 'CCC o inferior'];
+  const GROUP_COLOR = { 'Grado de inversión': '#16a34a', BB: '#2563eb', B: '#d97706', 'CCC o inferior': '#dc2626', 'Sin calificación vigente': '#8b95a5' };
+  const AGENCIES = [['sp', 'S&P'], ['moodys', "Moody's"], ['fitch', 'Fitch']];
+  const ratingOf = (n) => (S.ratings && S.ratings.ratings[n]) || null;
+  const isAgg = (n) => (S.data.meta.aggregates || []).includes(n);
+
+  async function loadRatings() {
+    try {
+      const r = await fetch('/api/ratings');
+      const j = await r.json();
+      if (!r.ok || !j.ratings) throw new Error(j.error || 'HTTP ' + r.status);
+      S.ratings = j;
+    } catch (e) {
+      S.ratings = null;
+      $('cmpnote').innerHTML = '<span class="err">No se pudieron cargar las calificaciones: ' + e.message + '</span>';
+    }
+  }
+
+  function buildGroupBtns() {
+    if (!S.ratings) return;
+    $('groupbtns').innerHTML = GROUPS.map((g) => `<button data-g="${g}" title="Seleccionar países de este grupo">${g}</button>`).join(' ');
+    $('groupbtns').onclick = (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      S.selected = new Set(S.names.filter((n) => !isAgg(n) && ratingOf(n) && ratingOf(n).group === b.dataset.g));
+      render();
+    };
+  }
+
+  function buildRanges() {
+    $('ranges').innerHTML = RANGES.map(([l, m]) => `<button data-m="${m}">${l}</button>`).join(' ');
+    $('ranges').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setRange(+b.dataset.m); });
+  }
+  function setRange(m) {
+    S.months = m;
+    const last = S.data.dates[S.data.dates.length - 1];
+    S.to = last;
+    S.from = m ? addMonths(last, m) : S.data.dates[0];
+    syncInputs(); render();
+  }
+  function syncInputs() {
+    $('from').value = S.from; $('to').value = S.to;
+    $('from').min = $('to').min = S.data.dates[0]; $('from').max = $('to').max = S.data.dates[S.data.dates.length - 1];
+    document.querySelectorAll('#ranges button').forEach((b) => b.classList.toggle('on', S.months !== null && +b.dataset.m === S.months));
+    $('logbtn').classList.toggle('on', S.log);
+  }
+
+  function buildChips() {
+    $('chips').innerHTML = S.names.map((n) =>
+      `<span class="chip" data-n="${n.replace(/"/g, '&quot;')}"><i></i>${n}</span>`).join('');
+    $('chips').addEventListener('click', (e) => {
+      const c = e.target.closest('.chip'); if (!c) return;
+      const n = c.dataset.n; S.selected.has(n) ? S.selected.delete(n) : S.selected.add(n); render();
+    });
+  }
+
+  function bind() {
+    $('from').addEventListener('change', () => { if ($('from').value) { S.from = $('from').value; S.months = null; syncInputs(); render(); } });
+    $('to').addEventListener('change', () => { if ($('to').value) { S.to = $('to').value; S.months = null; syncInputs(); render(); } });
+    $('logbtn').addEventListener('click', () => { S.log = !S.log; syncInputs(); render(); });
+    $('csv').addEventListener('click', downloadCSV);
+    document.querySelectorAll('[data-preset]').forEach((b) => b.addEventListener('click', () => {
+      const p = b.dataset.preset;
+      S.selected = new Set(p === 'all' ? S.names : p === 'none' ? [] : p === 'arg' ? S.names.filter(isArg) : S.names.filter((n) => MAIN.test(n)));
+      render();
+    }));
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', render);
+  }
+
+  function indices() {
+    const dates = S.data.dates;
+    const i0 = lowerBound(dates, S.from);
+    let i1 = lowerBound(dates, addDays(S.to, 1)) - 1;
+    if (i1 < i0) i1 = i0;
+    const n = i1 - i0 + 1, step = Math.max(1, Math.ceil(n / 1200)), idx = [];
+    for (let i = i0; i <= i1; i += step) idx.push(i);
+    if (idx[idx.length - 1] !== i1) idx.push(i1);
+    return { idx, i0, i1 };
+  }
+
+  function render() {
+    renderChips(); renderKpis(); renderChart(); renderRank(); renderCompare();
+  }
+
+  function renderChips() {
+    document.querySelectorAll('.chip').forEach((c) => {
+      const on = S.selected.has(c.dataset.n);
+      c.classList.toggle('on', on);
+      c.firstChild.style.background = on ? S.color[c.dataset.n] : '';
+    });
+  }
+
+  function renderKpis() {
+    const { dates, series } = S.data;
+    const html = [...S.selected].slice(0, 12).map((n) => {
+      const v = series[n], li = lastIdx(v);
+      if (li < 0) return '';
+      const prev = lastIdx(v, li - 1);
+      const t30 = lowerBound(dates, addDays(dates[li], -30));
+      const j = lastIdx(v, Math.min(t30, li - 1));
+      const d1 = prev >= 0 ? v[li] - v[prev] : null;
+      const d30 = j >= 0 ? v[li] - v[j] : null;
+      const cls = (x) => (x == null ? '' : x > 0 ? 'up' : x < 0 ? 'down' : '');
+      const f = (x) => (x == null ? '–' : fmt1.format(x));
+      return `<div class="kpi" style="border-left-color:${S.color[n]}">
+        <div class="name">${n} · ${fmtDate(dates[li])}</div>
+        <div class="val">${fmt.format(v[li])} <small>pb</small></div>
+        <div class="chg">Δ día <span class="${cls(d1)}">${f(d1)}</span> · Δ 30d <span class="${cls(d30)}">${f(d30)}</span></div>
+      </div>`;
+    }).join('');
+    $('kpis').innerHTML = html;
+  }
+
+  function renderChart() {
+    const { dates, series } = S.data;
+    const { idx } = indices();
+    const labels = idx.map((i) => dates[i]);
+    const text = css('--muted'), grid = css('--grid');
+    const datasets = [...S.selected].map((n) => ({
+      label: n, data: idx.map((i) => series[n][i]), borderColor: S.color[n], backgroundColor: S.color[n],
+      borderWidth: isArg(n) ? 2.4 : 1.6, pointRadius: 0, pointHoverRadius: 3, tension: 0, spanGaps: true,
+    }));
+    if (chart) chart.destroy();
+    chart = new Chart($('chart'), {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { position: 'bottom', labels: { color: text, usePointStyle: true, boxWidth: 8 } },
+          tooltip: {
+            itemSort: (a, b) => (b.parsed.y ?? -1) - (a.parsed.y ?? -1),
+            callbacks: {
+              title: (it) => fmtDate(it[0].label),
+              label: (c) => ` ${c.dataset.label}: ${c.parsed.y == null ? '–' : fmt.format(c.parsed.y)} pb`,
+            },
+          },
+        },
+        scales: {
+          x: { ticks: { color: text, maxTicksLimit: 9, maxRotation: 0, callback(v) { const l = this.getLabelForValue(v); return l.slice(0, 4) + '-' + l.slice(5, 7); } }, grid: { color: grid } },
+          y: { type: S.log ? 'logarithmic' : 'linear', beginAtZero: !S.log, title: { display: true, text: 'Spread (pb)', color: text },
+               ticks: { color: text, callback: (v) => fmt.format(v) }, grid: { color: grid } },
+        },
+      },
+    });
+  }
+
+  function renderRank() {
+    const { dates, series } = S.data;
+    const rows = S.names.map((n) => { const li = lastIdx(series[n]); return li < 0 ? null : { n, v: series[n][li], d: dates[li] }; })
+      .filter(Boolean).sort((a, b) => b.v - a.v);
+    $('rankdate').textContent = rows.length ? '· al ' + fmtDate(rows.map((r) => r.d).sort().pop()) : '';
+    $('rankbox').style.height = Math.max(160, rows.length * 24 + 50) + 'px';
+    const text = css('--muted'), grid = css('--grid');
+    if (rank) rank.destroy();
+    rank = new Chart($('rank'), {
+      type: 'bar',
+      data: { labels: rows.map((r) => r.n), datasets: [{
+        data: rows.map((r) => r.v),
+        backgroundColor: rows.map((r) => (S.selected.has(r.n) ? S.color[r.n] : css('--border'))),
+        borderRadius: 3,
+      }] },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => ` ${fmt.format(c.parsed.x)} pb (${fmtDate(rows[c.dataIndex].d)})` } } },
+        scales: { x: { ticks: { color: text, callback: (v) => fmt.format(v) }, grid: { color: grid } }, y: { ticks: { color: text }, grid: { display: false } } },
+        onClick: (_, els) => { if (els.length) { const n = rows[els[0].index].n; S.selected.has(n) ? S.selected.delete(n) : S.selected.add(n); render(); } },
+      },
+    });
+  }
+
+  // ---------- Comparación por calificación ----------
+  let scat = null, grp = null;
+
+  function periodStats(name) {
+    const { dates, series } = S.data;
+    const v = series[name];
+    const i0 = lowerBound(dates, S.from);
+    const i1 = Math.max(i0, lowerBound(dates, addDays(S.to, 1)) - 1);
+    const e = lastIdx(v, i1);
+    if (e < 0) return null;
+    let s = -1; for (let i = i0; i <= e; i++) if (v[i] != null) { s = i; break; }
+    const t30 = lowerBound(dates, addDays(dates[e], -30));
+    const j = lastIdx(v, Math.min(t30, e - 1));
+    return { last: v[e], date: dates[e], d30: j >= 0 ? v[e] - v[j] : null, dp: s >= 0 && s < e ? v[e] - v[s] : null, startVal: s >= 0 ? v[s] : null };
+  }
+
+  function fitLog(points) { // ln(spread) = a + b * nota
+    const n = points.length; if (n < 3) return null;
+    const xs = points.map((p) => p.x), ys = points.map((p) => Math.log(p.y));
+    const mx = xs.reduce((a, b) => a + b) / n, my = ys.reduce((a, b) => a + b) / n;
+    let sxy = 0, sxx = 0; xs.forEach((x, i) => { sxy += (x - mx) * (ys[i] - my); sxx += (x - mx) ** 2; });
+    if (!sxx) return null;
+    const b = sxy / sxx; return { a: my - b * mx, b };
+  }
+
+  function ratingCell(rec, ag) {
+    const r = rec[ag];
+    if (!r) return '<td>–</td>';
+    const o = (r.outlook || '').toLowerCase();
+    const arrow = r.withdrawn ? ' ⊘' : /positive/.test(o) ? ' <span class="ol-p">▲</span>' : /negative/.test(o) ? ' <span class="ol-n">▼</span>' : '';
+    const old = r.date && (Date.now() - Date.parse(r.date)) > 548 * 864e5; // > 18 meses
+    const tip = `${r.outlook ? 'Perspectiva: ' + r.outlook : 'Sin perspectiva'}${r.date ? ' · ' + fmtDate(r.date) : ''}${r.withdrawn ? ' · calificación retirada' : ''}`;
+    return `<td><span class="rt${old || r.withdrawn ? ' stale' : ''}" title="${tip}">${r.rating}${arrow}</span></td>`;
+  }
+
+  function renderCompare() {
+    if (!S.ratings || !S.data) return;
+    const countries = S.names.filter((n) => !isAgg(n) && ratingOf(n));
+    const rows = countries.map((n) => ({ n, rec: ratingOf(n), st: periodStats(n) })).filter((r) => r.st);
+    const m = S.ratings.meta;
+    $('cmpnote').className = 'note' + (m.origin === 'snapshot' ? ' warn' : '');
+    $('cmpnote').innerHTML = `Calificaciones de S&amp;P, Moody's y Fitch (generadas ${fmtDate((m.generatedAt || '').slice(0, 10))}${m.origin === 'snapshot' ? ' · copia guardada, la fuente en vivo no respondió' : ''}). Nota promedio en escala 1 (AAA) – 22 (default). ▲/▼ = perspectiva positiva/negativa; las notas con más de 18 meses se ven atenuadas.`;
+
+    // Ajuste log-lineal sobre países con nota
+    const pts = rows.filter((r) => r.rec.score != null && r.st.last > 0).map((r) => ({ x: r.rec.score, y: r.st.last, n: r.n }));
+    const fit = fitLog(pts);
+    rows.sort((a, b) => (a.rec.score ?? 99) - (b.rec.score ?? 99) || b.st.last - a.st.last);
+
+    const sgn = (x) => (x == null ? '–' : fmt1.format(x));
+    const cls = (x) => (x == null ? '' : x > 0 ? 'up' : x < 0 ? 'down' : '');
+    $('cmptbl').innerHTML = `<thead><tr><th class="l">País</th><th>S&amp;P</th><th>Moody's</th><th>Fitch</th><th>Nota prom.</th><th class="l">Grupo</th>
+      <th>Spread (pb)</th><th>Δ 30 d</th><th>Δ período</th><th>Esperado por nota</th><th>Desvío</th></tr></thead><tbody>` +
+      rows.map(({ n, rec, st }) => {
+        const exp = fit && rec.score != null ? Math.exp(fit.a + fit.b * rec.score) : null;
+        const dev = exp != null ? Math.round(st.last - exp) + 0 : null;
+        return `<tr class="${S.selected.has(n) ? 'sel' : ''}"><td>${n}</td>${AGENCIES.map(([k]) => ratingCell(rec, k)).join('')}
+          <td>${rec.composite ? rec.composite + ' <span style="color:var(--muted)">(' + rec.score.toFixed(1) + ')</span>' : '–'}</td>
+          <td class="l"><span class="badge" style="background:${GROUP_COLOR[rec.group] || '#8b95a5'}">${rec.group}</span></td>
+          <td>${fmt.format(st.last)}</td><td class="${cls(st.d30)}">${sgn(st.d30)}</td><td class="${cls(st.dp)}">${sgn(st.dp)}</td>
+          <td>${exp != null ? fmt.format(exp) : '–'}</td><td class="${cls(dev)}">${dev != null ? (dev > 0 ? '+' : '') + fmt.format(dev) : '–'}</td></tr>`;
+      }).join('') + '</tbody>';
+
+    renderScatter(pts, fit, rows);
+    renderGroups(rows);
+  }
+
+  function renderScatter(pts, fit, rows) {
+    const text = css('--muted'), grid = css('--grid'), fg = css('--text');
+    const letters = S.ratings.meta.scaleLetters || [];
+    const data = pts.map((p) => ({ x: p.x, y: p.y, label: p.n, g: ratingOf(p.n).group }));
+    const xs = pts.map((p) => p.x);
+    const xmin = Math.floor(Math.min(...xs, 10)) - 1, xmax = Math.ceil(Math.max(...xs, 12)) + 1;
+    const line = fit ? [xmin, xmax].map((x) => ({ x, y: Math.exp(fit.a + fit.b * x) })) : [];
+    const labels = { id: 'ptlabels', afterDatasetsDraw(ch) {
+      const meta = ch.getDatasetMeta(0), ctx = ch.ctx; ctx.save(); ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = fg;
+      meta.data.forEach((pt, i) => ctx.fillText(data[i].label, pt.x + 7, pt.y + 3)); ctx.restore(); } };
+    if (scat) scat.destroy();
+    scat = new Chart($('scatter'), {
+      type: 'scatter',
+      data: { datasets: [
+        { label: 'Países', data, pointRadius: 6, pointHoverRadius: 8, backgroundColor: data.map((d) => GROUP_COLOR[d.g]), borderColor: data.map((d) => GROUP_COLOR[d.g]) },
+        { label: 'Ajuste', data: line, type: 'line', borderColor: text, borderDash: [5, 4], borderWidth: 1.2, pointRadius: 0, fill: false },
+      ] },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        plugins: { legend: { display: false }, tooltip: { filter: (i) => i.datasetIndex === 0, callbacks: {
+          title: (it) => it[0].raw.label,
+          label: (c) => [` Nota: ${letters[Math.round(c.raw.x) - 1] || ''} (${c.raw.x.toFixed(1)})`, ` Spread: ${fmt.format(c.raw.y)} pb`] } } },
+        scales: {
+          x: { min: xmin, max: xmax, title: { display: true, text: 'Calificación (nota promedio)', color: text },
+               ticks: { color: text, stepSize: 1, callback: (v) => (Number.isInteger(v) && letters[v - 1]) || '' }, grid: { color: grid } },
+          y: { type: 'logarithmic', title: { display: true, text: 'Spread (pb, escala log)', color: text }, ticks: { color: text, callback: (v) => ([100, 200, 300, 500, 1000, 2000, 5000].includes(v) ? fmt.format(v) : '') }, grid: { color: grid } },
+        },
+      },
+      plugins: [labels],
+    });
+  }
+
+  function renderGroups(rows) {
+    const { dates, series } = S.data;
+    const { idx } = indices();
+    const text = css('--muted'), grid = css('--grid');
+    const members = {}; GROUPS.forEach((g) => (members[g] = []));
+    rows.forEach((r) => { if (members[r.rec.group]) members[r.rec.group].push(r.n); });
+    const present = GROUPS.filter((g) => members[g].length);
+    const datasets = present.map((g) => ({
+      label: `${g} (${members[g].length})`, borderColor: GROUP_COLOR[g], backgroundColor: GROUP_COLOR[g], borderWidth: 2, pointRadius: 0, tension: 0, spanGaps: true,
+      data: idx.map((i) => { const vals = members[g].map((n) => series[n][i]).filter((v) => v != null); return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null; }),
+    }));
+    if (grp) grp.destroy();
+    grp = new Chart($('groups'), {
+      type: 'line',
+      data: { labels: idx.map((i) => dates[i]), datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { position: 'bottom', labels: { color: text, usePointStyle: true, boxWidth: 8 } },
+          tooltip: { callbacks: { title: (it) => fmtDate(it[0].label), label: (c) => ` ${c.dataset.label}: ${c.parsed.y == null ? '–' : fmt.format(c.parsed.y)} pb` } } },
+        scales: {
+          x: { ticks: { color: text, maxTicksLimit: 7, maxRotation: 0, callback(v) { const l = this.getLabelForValue(v); return l.slice(0, 4) + '-' + l.slice(5, 7); } }, grid: { color: grid } },
+          y: { type: S.log ? 'logarithmic' : 'linear', beginAtZero: !S.log, title: { display: true, text: 'Spread promedio (pb)', color: text }, ticks: { color: text, callback: (v) => fmt.format(v) }, grid: { color: grid } },
+        },
+      },
+    });
+
+    // Resumen por grupo
+    const sums = present.map((g) => {
+      const st = members[g].map((n) => periodStats(n)).filter(Boolean);
+      const avg = (f) => { const a = st.map(f).filter((v) => v != null); return a.length ? a.reduce((x, y) => x + y, 0) / a.length : null; };
+      const last = avg((s) => s.last), dp = avg((s) => s.dp), d30 = avg((s) => s.d30);
+      const pct = avg((s) => (s.dp != null && s.startVal ? (s.dp / s.startVal) * 100 : null));
+      return { g, n: members[g].length, last, d30, dp, pct };
+    });
+    const sgn = (x) => (x == null ? '–' : fmt1.format(x));
+    const cls = (x) => (x == null ? '' : x > 0 ? 'up' : x < 0 ? 'down' : '');
+    $('grptbl').innerHTML = '<thead><tr><th class="l">Grupo</th><th>Países</th><th>Spread prom. (pb)</th><th>Δ 30 d</th><th>Δ período (pb)</th><th>Δ período (%)</th></tr></thead><tbody>' +
+      sums.map((s) => `<tr><td class="l"><span class="badge" style="background:${GROUP_COLOR[s.g]}">${s.g}</span></td><td>${s.n}</td><td>${s.last == null ? '–' : fmt.format(s.last)}</td>
+        <td class="${cls(s.d30)}">${sgn(s.d30)}</td><td class="${cls(s.dp)}">${sgn(s.dp)}</td><td class="${cls(s.pct)}">${s.pct == null ? '–' : fmt1.format(s.pct) + '%'}</td></tr>`).join('') + '</tbody>';
+  }
+
+  function downloadCSV() {
+    const { dates, series } = S.data;
+    const { i0, i1 } = indices();
+    const cols = [...S.selected];
+    const lines = [['fecha', ...cols].join(',')];
+    for (let i = i0; i <= i1; i++) lines.push([dates[i], ...cols.map((n) => (series[n][i] ?? ''))].join(','));
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' }));
+    a.download = `embi_${S.from}_${S.to}.csv`; a.click(); URL.revokeObjectURL(a.href);
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "embi-latam",
+  "version": "1.0.0",
+  "description": "Riesgo país (EMBI) de Argentina y Latinoamérica: descarga desde el BCRD y gráficos. Deploy en Vercel.",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.18"
+  },
+  "scripts": {
+    "update-data": "node scripts/update-data.js",
+    "test": "node test/parse.test.js && node test/ratings.test.js",
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "cheerio": "^1.2.0",
+    "xlsx": "^0.18.5"
+  }
+}
