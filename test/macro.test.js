@@ -33,6 +33,8 @@ assert.ok(!imf.XXX);
 assert.throws(() => parseImf({ values: {} }, 'GGXCNL_NGDP'), /sin datos/);
 
 // --- Integración con fetch simulado
+const okJson = (x) => ({ ok: true, text: async () => JSON.stringify(x) });
+
 function mockFetch(failCodes = [], failAll = false) {
   return async (url) => {
     if (failAll) return { ok: false, status: 503 };
@@ -41,10 +43,10 @@ function mockFetch(failCodes = [], failAll = false) {
     if (failCodes.includes(code)) return { ok: false, status: 500 };
     if (isWb) {
       assert.ok(/country\/ARG;BOL;BRA/.test(url) && /per_page=2000/.test(url) && /date=\d{4}:\d{4}/.test(url), 'URL WB bien formada');
-      return { ok: true, json: async () => [{ page: 1 }, [{ countryiso3code: 'ARG', date: '2024', value: 5 }, { countryiso3code: 'CHL', date: '2023', value: 7 }]] };
+      return okJson([{ page: 1 }, [{ countryiso3code: 'ARG', date: '2024', value: 5 }, { countryiso3code: 'CHL', date: '2023', value: 7 }]]);
     }
     assert.ok(/v1\/[A-Z_]+\/ARG\/BOL\/BRA/.test(url), 'URL FMI bien formada');
-    return { ok: true, json: async () => ({ values: { [code]: { ARG: { 2024: 1, 2025: 2, 2026: 3, 2027: 4 }, URY: { 2025: 9 } } } }) };
+    return okJson({ values: { [code]: { ARG: { 2024: 1, 2025: 2, 2026: 3, 2027: 4 }, URY: { 2025: 9 } } } });
   };
 }
 
@@ -70,6 +72,14 @@ function mockFetch(failCodes = [], failAll = false) {
     assert.deepStrictEqual(part.meta.stale, ['extdebt']);
     assert.deepStrictEqual(part.countries.Argentina.values.extdebt, { 2022: 55.5 }, 'completa con snapshot');
     assert.ok(/HTTP 500/.test(part.meta.errors.extdebt));
+
+    // Respuesta no JSON (p. ej. página de error de Vercel/CDN) y pedido colgado -> falla ese indicador, no la app
+    global.fetch = async (url) => (url.includes('NY.GDP.PCAP.CD')
+      ? { ok: true, text: async () => 'An error occurred with your deployment' }
+      : mockFetch()(url));
+    const bad = await fetchMacroLive(null);
+    assert.deepStrictEqual(bad.meta.stale, ['gdppc']);
+    assert.ok(/no JSON/.test(bad.meta.errors.gdppc));
 
     // Todo cae -> error (la API sirve el snapshot)
     global.fetch = mockFetch([], true);

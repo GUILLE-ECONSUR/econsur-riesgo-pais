@@ -6,7 +6,7 @@
     },
     "api/macro.js": {
       "includeFiles": "data/**",
-      "maxDuration": 60
+      "maxDuration": 30
     },
     "api/ratings.js": {
       "includeFiles": "data/**",

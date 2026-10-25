@@ -673,7 +673,9 @@
     if (M.data || M.loading) return;
     M.loading = true;
     try {
-      const r = await fetch('/api/macro'); const j = await r.json();
+      const r = await fetch('/api/macro');
+      const txt = await r.text();
+      let j; try { j = JSON.parse(txt); } catch (_) { throw new Error('el servidor tardó demasiado o no devolvió datos'); }
       if (!r.ok || !j.countries) throw new Error(j.error || 'HTTP ' + r.status);
       M.data = j;
       const yrs = j.meta.imfYears.filter((y) => y <= j.meta.refYear + 4);
@@ -685,7 +687,7 @@
       const groups = ['Todos', ...new Set(j.meta.indicators.map((i) => i.group))];
       $('mgroups').innerHTML = groups.map((g) => `<button data-mg="${g}">${g}</button>`).join(' ');
     } catch (e) {
-      $('mnote').innerHTML = '<span class="err">No se pudieron cargar los datos macro: ' + e.message + '. Corré «npm run update-data» para generar el respaldo data/macro.json.</span>';
+      $('mnote').innerHTML = '<span class="err">Los datos macro todavía no están disponibles (' + e.message + '). Se generan con la actualización automática de GitHub (pestaña Actions → «Actualizar snapshots» → Run workflow); en unos minutos estarán acá.</span>';
     }
     M.loading = false;
     renderMacro();
