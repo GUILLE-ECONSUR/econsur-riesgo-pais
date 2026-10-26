@@ -24,6 +24,7 @@ lib/macro.js                Cliente Banco Mundial + FMI, catálogo de indicadore
 lib/parse.js                Parser del Excel del BCRD
 lib/ratings.js              Parser de calificaciones, escala numérica y grupos
 public/index.html           Frontend (Chart.js)
+public/data/imf-programas.json  Acuerdos vigentes del FMI (carga manual con fuentes)
 scripts/update-data.js      Regenera data/embi.json y data/ratings.json
 data/ratings.overrides.json Correcciones manuales de calificaciones (opcional)
 test/                       Tests (npm test)
@@ -66,6 +67,28 @@ Cosas a tener en cuenta:
 - Los datos del Banco Mundial tienen rezago (suele ser 1 o 2 años); el año de cada dato se muestra en gris. Los del FMI se eligen por año; los años desde el actual son estimaciones o proyecciones y se ven en cursiva. Por defecto se muestra el último año cerrado.
 - Venezuela casi no tiene datos recientes en estas fuentes y su spread es un valor atípico: se muestra atenuada en la tabla y no entra en los gráficos.
 - Hay una falla parcial tolerada: si una API cae, la corrida conserva lo anterior de ese indicador y lo informa en `meta.stale`.
+
+## Financiamiento del FMI (gráfico de torta e historial)
+
+En la pestaña «Comparativo macro» hay un gráfico de torta con tres medidas, siempre en US$ aproximados y en %:
+
+- **Deuda con el FMI (crédito pendiente)** — por defecto. Es lo que cada país debe por *todos* sus acuerdos, vigentes o vencidos (por ejemplo, el EFF 2022 de Argentina, vencido en 12/2024 pero con DEG 30.517 M pendientes). Sale de la tabla oficial «Credit Outstanding for all members» del FMI.
+- **Acceso de acuerdos vigentes**, con botón para sumar las líneas precautorias (FCL).
+- **Desembolsado en acuerdos vigentes.**
+
+Debajo hay una tabla resumen por país y un **historial de 36 acuerdos desde 2020** (vigentes, finalizados y cancelados) con monto acordado, desembolsado, saldo, estado y enlace a la tabla o comunicado oficial del FMI de cada cifra. También se listan los países sin acuerdos y los casos pendientes (p. ej. Bolivia).
+
+Los datos están en `public/data/imf-programas.json`. El FMI no ofrece una API gratuita de programas vigentes, así que **se cargan a mano** desde sus tablas y comunicados, y hay que actualizarlos con cada revisión del Directorio (aprox. cada 6 meses por país):
+
+1. En GitHub abrí `public/data/imf-programas.json` y tocá el lápiz (Edit).
+2. Si salió una revisión nueva: actualizá `drawnSdrM`, el texto de `statusText` y agregá el enlace del comunicado en `sources`. Si el acuerdo venció o se canceló, cambiá `status` a `"finalizado"` o `"cancelado"`.
+3. Para un acuerdo nuevo, copiá un bloque de `programs` y cambiá los datos (montos en millones de DEG).
+4. Cada tanto (el FMI actualiza la tabla cada trimestre) actualizá el bloque `outstanding` con la nueva tabla «Credit Outstanding for all members» y su fecha (`asOf`).
+5. Cambiá `meta.verifiedOn` y guardá con **Commit changes**. Vercel republica solo.
+
+`npm test` valida el archivo: coherencia DEG/US$, saldo ≤ desembolsado ≤ acordado, fechas, estados, enlaces a dominios oficiales, que los 17 países estén clasificados y que la suma de saldos de Argentina coincida con la tabla del FMI.
+
+Tablas del FMI usadas: [Credit Outstanding](https://www.imf.org/external/np/fin/tad/extcred2.aspx), «History of Lending Commitments» y «Transactions with the Fund» por país (se abren desde los enlaces de cada fila).
 
 ## Puesta en marcha
 

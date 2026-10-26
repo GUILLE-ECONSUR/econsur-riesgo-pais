@@ -1,0 +1,360 @@
+{
+  "meta": {
+    "verifiedOn": "2026-10-26",
+    "unit": "Millones de DEG (Derechos Especiales de Giro) salvo que se indique otra unidad.",
+    "sdrUsdRate": 1.353,
+    "sdrUsdRateNote": "Referencial: es la relación US$/DEG implícita en comunicados recientes del FMI (Chile, ago-2026: US$ 11.800 M = DEG 8.721,5 M; El Salvador, oct-2026: US$ 138 M = DEG 101,96 M). Sirve solo para expresar en US$ aproximados los montos en DEG; los US$ publicados por el FMI figuran en la columna «US$ informado».",
+    "method": "Datos cargados a mano desde las tablas oficiales del FMI («Credit Outstanding for all members», «History of Lending Commitments», «Transactions with the Fund») y comunicados del Directorio. El FMI no ofrece una API gratuita de programas vigentes; el archivo se actualiza con cada revisión (ver README).",
+    "limits": "Cada fila indica la fecha de corte de la tabla del FMI de la que sale. Para algunos países la tabla de historial consultada tiene fecha anterior a 2026; lo posterior se completó con comunicados oficiales y con la tabla de crédito pendiente al 31/03/2026. El estado «vigente» corresponde a la fecha del último comunicado consultado.",
+    "note": "El crédito pendiente es lo que cada país debe al FMI por los acuerdos (vigentes o ya vencidos). Es la medida más completa del financiamiento recibido."
+  },
+
+  "outstanding": {
+    "asOf": "2026-03-31",
+    "source": {
+      "label": "FMI, Credit Outstanding for all members as of March 31, 2026",
+      "url": "https://www.imf.org/external/np/fin/tad/extcred2.aspx?date1key=2026-03-31&reportdate=2026-03-31"
+    },
+    "rows": [
+      { "country": "Argentina",   "graSdrM": 41789,      "prgtSdrM": 0,          "rstSdrM": 0 },
+      { "country": "Ecuador",     "graSdrM": 7166.7625,  "prgtSdrM": 0,          "rstSdrM": 0 },
+      { "country": "Costa Rica",  "graSdrM": 1220.295,   "prgtSdrM": 0,          "rstSdrM": 554.1 },
+      { "country": "Honduras",    "graSdrM": 252.45175,  "prgtSdrM": 204.446666, "rstSdrM": 0 },
+      { "country": "Paraguay",    "graSdrM": 0,          "prgtSdrM": 0,          "rstSdrM": 231.6 },
+      { "country": "El Salvador", "graSdrM": 172.32,     "prgtSdrM": 0,          "rstSdrM": 0 }
+    ],
+    "zero": ["Bolivia", "Brasil", "Chile", "Colombia", "Rep. Dominicana", "Guatemala", "México", "Panamá", "Perú", "Uruguay", "Venezuela"],
+    "notes": [
+      "GRA = Cuenta de Recursos Generales (EFF, SBA, FCL, RFI); PRGT = Fondo Fiduciario para el Crecimiento y la Lucha contra la Pobreza (ECF); RST = Fondo Fiduciario de Resiliencia y Sostenibilidad (RSF).",
+      "Los países de la lista «zero» no figuran en la tabla oficial, que solo incluye a los miembros con crédito pendiente.",
+      "Argentina: la tabla «Historial de compromisos» al 30/09/2026 informa DEG 41.968,7 M pendientes (EFF 2022: DEG 30.516,7 M + EFF 2025: DEG 11.452 M)."
+    ]
+  },
+
+  "programs": [
+    {
+      "id": "ARG-2018-SBA", "country": "Argentina", "instrument": "Stand-By (SBA)", "kind": "financing",
+      "approval": "2018-06-20", "expiry": "2020-07-24", "status": "finalizado",
+      "statusText": "Vencido el 24/07/2020 (estuvo en vigor en 2020). Sin saldo.",
+      "agreedSdrM": 40714, "drawnSdrM": 31913.71, "balanceSdrM": 0, "balanceAsOf": "2026-09-30", "usdM": null, "pctQuota": null,
+      "notes": "",
+      "sources": [{ "label": "FMI, historial de compromisos (30/09/2026)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberkey1=30&date1Key=2099-01-01" }]
+    },
+    {
+      "id": "ARG-2022-EFF", "country": "Argentina", "instrument": "Servicio Ampliado (EFF)", "kind": "financing",
+      "approval": "2022-03-25", "expiry": "2024-12-31", "status": "finalizado",
+      "statusText": "Vencido el 31/12/2024, pero con saldo pendiente.",
+      "agreedSdrM": 31914, "drawnSdrM": 31100, "balanceSdrM": 30516.667, "balanceAsOf": "2026-09-30", "usdM": null, "pctQuota": null,
+      "notes": "Su deuda sigue pendiente aunque el acuerdo haya vencido.",
+      "sources": [{ "label": "FMI, historial de compromisos (30/09/2026)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberkey1=30&date1Key=2099-01-01" }]
+    },
+    {
+      "id": "ARG-2025-EFF", "country": "Argentina", "instrument": "Servicio Ampliado (EFF)", "kind": "financing",
+      "approval": "2025-04-11", "expiry": "2029-04-10", "status": "vigente",
+      "statusText": "Vigente. Última revisión: 2.ª (21/05/2026).",
+      "agreedSdrM": 15267, "drawnSdrM": 11452, "balanceSdrM": 11452, "balanceAsOf": "2026-09-30", "usdM": 20000, "pctQuota": 479,
+      "notes": "",
+      "sources": [
+        { "label": "FMI, historial de compromisos (30/09/2026)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberkey1=30&date1Key=2099-01-01" },
+        { "label": "FMI, comunicado 21/05/2026", "url": "https://www.imf.org/en/news/articles/2026/05/21/pr26165-argentina-imf-completes-2nd-rev-of-extended-arr-under-eff-concludes-2026-aiv-consultation" }
+      ]
+    },
+
+    {
+      "id": "BOL-2020-RFI", "country": "Bolivia", "instrument": "Instrumento de Financiamiento Rápido (RFI)", "kind": "emergency",
+      "approval": "2020", "expiry": null, "status": "finalizado",
+      "statusText": "Finalizado: compra de DEG 240,1 M en 2020, repagada en 2021.",
+      "agreedSdrM": 240.1, "drawnSdrM": 240.1, "balanceSdrM": 0, "balanceAsOf": "2026-09-30", "usdM": null, "pctQuota": null,
+      "notes": "La tabla de transacciones no informa la fecha exacta de aprobación.",
+      "sources": [{ "label": "FMI, transacciones con el Fondo: Bolivia", "url": "https://www.imf.org/external/np/fin/tad/extrans1.aspx?memberKey1=70&endDate=2099-12-31&finposition_flag=YES" }]
+    },
+
+    {
+      "id": "CHL-2020-FCL", "country": "Chile", "instrument": "Línea de Crédito Flexible (FCL)", "kind": "precautionary",
+      "approval": "2020-05-29", "expiry": "2022-05-19", "status": "finalizado", "statusText": "Vencida. Sin desembolsos.",
+      "agreedSdrM": 17443, "drawnSdrM": 0, "balanceSdrM": 0, "balanceAsOf": "2025-12-31", "usdM": 23930, "pctQuota": null,
+      "notes": "",
+      "sources": [{ "label": "FMI, historial de compromisos (31/12/2025)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=170&date1key=2025-12-31" }]
+    },
+    {
+      "id": "CHL-2022-STLL", "country": "Chile", "instrument": "Línea de Liquidez a Corto Plazo (STLL)", "kind": "precautionary",
+      "approval": "2022-05-20", "expiry": "2022-08-28", "status": "finalizado", "statusText": "Vencida. Sin desembolsos.",
+      "agreedSdrM": 2529, "drawnSdrM": 0, "balanceSdrM": 0, "balanceAsOf": "2025-12-31", "usdM": null, "pctQuota": null, "notes": "",
+      "sources": [{ "label": "FMI, historial de compromisos (31/12/2025)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=170&date1key=2025-12-31" }]
+    },
+    {
+      "id": "CHL-2022-FCL", "country": "Chile", "instrument": "Línea de Crédito Flexible (FCL)", "kind": "precautionary",
+      "approval": "2022-08-29", "expiry": "2024-08-26", "status": "finalizado", "statusText": "Vencida. Sin desembolsos.",
+      "agreedSdrM": 13954, "drawnSdrM": 0, "balanceSdrM": 0, "balanceAsOf": "2025-12-31", "usdM": 18500, "pctQuota": null, "notes": "",
+      "sources": [{ "label": "FMI, historial de compromisos (31/12/2025)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=170&date1key=2025-12-31" }]
+    },
+    {
+      "id": "CHL-2024-FCL", "country": "Chile", "instrument": "Línea de Crédito Flexible (FCL)", "kind": "precautionary",
+      "approval": "2024-08-27", "expiry": "2026-08-26", "status": "finalizado", "statusText": "Vencida el 26/08/2026 y renovada. Sin desembolsos.",
+      "agreedSdrM": 10465.8, "drawnSdrM": 0, "balanceSdrM": 0, "balanceAsOf": "2025-12-31", "usdM": 13800, "pctQuota": 600, "notes": "",
+      "sources": [{ "label": "FMI, historial de compromisos (31/12/2025)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=170&date1key=2025-12-31" }]
+    },
+    {
+      "id": "CHL-2026-FCL", "country": "Chile", "instrument": "Línea de Crédito Flexible (FCL)", "kind": "precautionary",
+      "approval": "2026-08", "expiry": null, "status": "vigente", "statusText": "Vigente (renovación de agosto de 2026, precautoria).",
+      "agreedSdrM": 8721.5, "drawnSdrM": null, "balanceSdrM": null, "balanceAsOf": null, "usdM": 11800, "pctQuota": null,
+      "notes": "El monto lo informa el Banco Central de Chile; la página del FMI sobre la renovación no pudo leerse en esta verificación.",
+      "sources": [
+        { "label": "Banco Central de Chile, 26/08/2026", "url": "https://www.bcentral.cl/en/content/-/detalle/prensa/nota-de-prensa/bcch-renovo-linea-de-credito-flexible-del-fondo-monetario-internacional" },
+        { "label": "FMI, nota 15/09/2026", "url": "https://www.imf.org/en/news/articles/2026/09/15/cf-renewed-credit-line-underscores-chiles-strong-fundamentals" }
+      ]
+    },
+
+    {
+      "id": "COL-2020-FCL", "country": "Colombia", "instrument": "Línea de Crédito Flexible (FCL)", "kind": "precautionary",
+      "approval": "2020-05-01", "expiry": "2022-04-28", "status": "finalizado",
+      "statusText": "Vencida. Se giraron DEG 3.750 M; el saldo (DEG 1.406,3 M al 31/03/2025) ya no figura pendiente al 31/03/2026.",
+      "agreedSdrM": 12267, "drawnSdrM": 3750, "balanceSdrM": 1406.25, "balanceAsOf": "2025-03-31", "usdM": null, "pctQuota": null, "notes": "",
+      "sources": [
+        { "label": "FMI, historial de compromisos (31/03/2025)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=190&date1key=2025-03-31" },
+        { "label": "FMI, crédito pendiente (31/03/2026)", "url": "https://www.imf.org/external/np/fin/tad/extcred2.aspx?date1key=2026-03-31&reportdate=2026-03-31" }
+      ]
+    },
+    {
+      "id": "COL-2022-FCL", "country": "Colombia", "instrument": "Línea de Crédito Flexible (FCL)", "kind": "precautionary",
+      "approval": "2022-04-29", "expiry": "2024-04-25", "status": "finalizado", "statusText": "Vencida. Sin desembolsos.",
+      "agreedSdrM": 7155.7, "drawnSdrM": 0, "balanceSdrM": 0, "balanceAsOf": "2025-03-31", "usdM": 9800, "pctQuota": null, "notes": "",
+      "sources": [{ "label": "FMI, historial de compromisos (31/03/2025)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=190&date1key=2025-03-31" }]
+    },
+    {
+      "id": "COL-2024-FCL", "country": "Colombia", "instrument": "Línea de Crédito Flexible (FCL)", "kind": "precautionary",
+      "approval": "2024-04-26", "expiry": "2026-04-25", "status": "cancelado", "statusText": "Cancelada por Colombia el 01/10/2025. Sin desembolsos.",
+      "agreedSdrM": 6133.5, "drawnSdrM": 0, "balanceSdrM": 0, "balanceAsOf": "2025-03-31", "usdM": 8100, "pctQuota": null, "notes": "",
+      "sources": [
+        { "label": "FMI, historial de compromisos (31/03/2025)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=190&date1key=2025-03-31" },
+        { "label": "FMI, comunicado 01/10/2025", "url": "https://www.imf.org/en/news/articles/2025/10/01/pr-25324-colombia-colombia-cancels-the-flexible-credit-line-arrangement-with-the-imf" }
+      ]
+    },
+
+    {
+      "id": "CRI-2020-RFI", "country": "Costa Rica", "instrument": "Instrumento de Financiamiento Rápido (RFI)", "kind": "emergency",
+      "approval": "2020-04-29", "expiry": null, "status": "finalizado", "statusText": "Finalizado (compra de DEG 369,4 M en 2020).",
+      "agreedSdrM": 369.4, "drawnSdrM": 369.4, "balanceSdrM": 369.4, "balanceAsOf": "2021-10-31", "usdM": null, "pctQuota": null,
+      "notes": "El saldo de DEG 369,4 M corresponde al 31/10/2021; el total GRA pendiente a 31/03/2026 figura en la tabla de crédito pendiente.",
+      "sources": [{ "label": "FMI, historial de compromisos (31/10/2021)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=220&date1key=2021-10-31" }]
+    },
+    {
+      "id": "CRI-2021-EFF", "country": "Costa Rica", "instrument": "Servicio Ampliado (EFF)", "kind": "financing",
+      "approval": "2021-03-01", "expiry": "2024-07", "status": "finalizado",
+      "statusText": "Finalizado (plazo original 29/02/2024, extendido cinco meses el 25/03/2022).",
+      "agreedSdrM": 1237.49, "drawnSdrM": null, "balanceSdrM": null, "balanceAsOf": null, "usdM": 1778, "pctQuota": 335,
+      "notes": "La fecha de vencimiento extendida («2024-07») es la que resulta de sumar cinco meses al plazo original; no la informa una tabla del FMI.",
+      "sources": [
+        { "label": "FMI, historial de compromisos (31/10/2021)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=220&date1key=2021-10-31" },
+        { "label": "FMI, comunicado 14/11/2022", "url": "https://www.imf.org/en/News/Articles/2022/11/14/pr22382-costa-rica-imf-executive-board-concludes-third-review-eff-approves-request-rsf" }
+      ]
+    },
+    {
+      "id": "CRI-2022-RSF", "country": "Costa Rica", "instrument": "Servicio de Resiliencia y Sostenibilidad (RSF)", "kind": "financing",
+      "approval": "2022-11-14", "expiry": null, "status": "finalizado",
+      "statusText": "Su duración coincidía con el tiempo restante del EFF. El saldo RST (DEG 554,1 M) sigue pendiente.",
+      "agreedSdrM": 554.1, "drawnSdrM": 554.1, "balanceSdrM": 554.1, "balanceAsOf": "2026-03-31", "usdM": 725, "pctQuota": 150,
+      "notes": "Desembolsado = saldo RST al 31/03/2026, que coincide con el monto acordado.",
+      "sources": [
+        { "label": "FMI, comunicado 14/11/2022", "url": "https://www.imf.org/en/News/Articles/2022/11/14/pr22382-costa-rica-imf-executive-board-concludes-third-review-eff-approves-request-rsf" },
+        { "label": "FMI, crédito pendiente (31/03/2026)", "url": "https://www.imf.org/external/np/fin/tad/extcred2.aspx?date1key=2026-03-31&reportdate=2026-03-31" }
+      ]
+    },
+    {
+      "id": "CRI-2025-FCL", "country": "Costa Rica", "instrument": "Línea de Crédito Flexible (FCL)", "kind": "precautionary",
+      "approval": "2025-06-02", "expiry": null, "status": "vigente", "statusText": "Vigente, precautoria (acuerdo de dos años; revisión de medio término 29/05/2026).",
+      "agreedSdrM": 1108.2, "drawnSdrM": null, "balanceSdrM": null, "balanceAsOf": null, "usdM": 1500, "pctQuota": 300, "notes": "",
+      "sources": [
+        { "label": "FMI, comunicado 02/06/2025", "url": "https://www.imf.org/en/news/articles/2025/06/02/pr-25173-costa-rica-imf-approves-new-2-yr-us-1-point-5-bil-flexible-credit-line-arrang" },
+        { "label": "FMI, comunicado 29/05/2026", "url": "https://www.imf.org/en/news/articles/2026/05/29/pr26177-costa-rica-exec-board-concludes-2026-aiv-consult-mid-term-review-fcl-arrangement" }
+      ]
+    },
+
+    {
+      "id": "DOM-2020-RFI", "country": "Rep. Dominicana", "instrument": "Instrumento de Financiamiento Rápido (RFI)", "kind": "emergency",
+      "approval": "2020-04-29", "expiry": null, "status": "finalizado", "statusText": "Finalizado y sin saldo.",
+      "agreedSdrM": 477.4, "drawnSdrM": 477.4, "balanceSdrM": 0, "balanceAsOf": "2025-06-30", "usdM": null, "pctQuota": null, "notes": "",
+      "sources": [{ "label": "FMI, historial de compromisos (30/06/2025)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=260&date1key=2025-06-30" }]
+    },
+
+    {
+      "id": "ECU-2019-EFF", "country": "Ecuador", "instrument": "Servicio Ampliado (EFF)", "kind": "financing",
+      "approval": "2019-03-11", "expiry": "2020-04-29", "status": "cancelado", "statusText": "Reemplazado en 2020 (vigente hasta el 29/04/2020).",
+      "agreedSdrM": 3035, "drawnSdrM": 1011.65, "balanceSdrM": 749.704, "balanceAsOf": "2025-03-31", "usdM": null, "pctQuota": null, "notes": "",
+      "sources": [{ "label": "FMI, historial de compromisos (31/03/2025)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=270&date1key=2025-03-31" }]
+    },
+    {
+      "id": "ECU-2020-RFI", "country": "Ecuador", "instrument": "Instrumento de Financiamiento Rápido (RFI)", "kind": "emergency",
+      "approval": "2020-05-01", "expiry": null, "status": "finalizado", "statusText": "Finalizado; con saldo al 31/03/2025.",
+      "agreedSdrM": 469.7, "drawnSdrM": 469.7, "balanceSdrM": 58.713, "balanceAsOf": "2025-03-31", "usdM": null, "pctQuota": null, "notes": "",
+      "sources": [{ "label": "FMI, historial de compromisos (31/03/2025)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=270&date1key=2025-03-31" }]
+    },
+    {
+      "id": "ECU-2020-EFF", "country": "Ecuador", "instrument": "Servicio Ampliado (EFF)", "kind": "financing",
+      "approval": "2020-09-30", "expiry": "2022-12-16", "status": "finalizado", "statusText": "Vencido el 16/12/2022, con saldo pendiente.",
+      "agreedSdrM": 4615, "drawnSdrM": 4615, "balanceSdrM": 4615, "balanceAsOf": "2025-03-31", "usdM": null, "pctQuota": null, "notes": "",
+      "sources": [{ "label": "FMI, historial de compromisos (31/03/2025)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=270&date1key=2025-03-31" }]
+    },
+    {
+      "id": "ECU-2024-EFF", "country": "Ecuador", "instrument": "Servicio Ampliado (EFF)", "kind": "financing",
+      "approval": "2024-05-31", "expiry": "2028-05-30", "status": "vigente",
+      "statusText": "Vigente. Acceso ampliado en julio de 2025. Última revisión: 5.ª (22/04/2026).",
+      "agreedSdrM": 3750, "drawnSdrM": 2700, "balanceSdrM": 1128.8, "balanceAsOf": "2025-03-31", "usdM": 5000, "pctQuota": null,
+      "notes": "Acordado y desembolsado según el comunicado del 22/04/2026 (el acuerdo original era de DEG 3.000 M). El saldo corresponde a la tabla al 31/03/2025.",
+      "sources": [
+        { "label": "FMI, historial de compromisos (31/03/2025)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=270&date1key=2025-03-31" },
+        { "label": "FMI, comunicado 22/04/2026", "url": "https://www.imf.org/en/news/articles/2026/04/22/pr26126-ecuador-the-imf-concludes-5th-review-of-eff-arrangement" }
+      ]
+    },
+
+    {
+      "id": "SLV-2020-RFI", "country": "El Salvador", "instrument": "Instrumento de Financiamiento Rápido (RFI)", "kind": "emergency",
+      "approval": "2020-04-14", "expiry": null, "status": "finalizado", "statusText": "Finalizado y sin saldo.",
+      "agreedSdrM": 287.2, "drawnSdrM": 287.2, "balanceSdrM": 0, "balanceAsOf": "2026-04-30", "usdM": null, "pctQuota": null, "notes": "",
+      "sources": [{ "label": "FMI, historial de compromisos (30/04/2026)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=280&date1key=2026-04-30" }]
+    },
+    {
+      "id": "SLV-2025-EFF", "country": "El Salvador", "instrument": "Servicio Ampliado (EFF)", "kind": "financing",
+      "approval": "2025-02-26", "expiry": "2028-06-25", "status": "vigente",
+      "statusText": "Vigente. Última revisión: 2.ª y 3.ª (01/10/2026).",
+      "agreedSdrM": 1033.92, "drawnSdrM": 274.28, "balanceSdrM": 172.32, "balanceAsOf": "2026-04-30", "usdM": 1400, "pctQuota": null,
+      "notes": "Desembolsado = DEG 172,32 M (tabla del FMI al 30/04/2026) + DEG 101,96 M (desembolso de la revisión del 01/10/2026); suma calculada con ambas cifras oficiales.",
+      "sources": [
+        { "label": "FMI, historial de compromisos (30/04/2026)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=280&date1key=2026-04-30" },
+        { "label": "FMI, comunicado 01/10/2026", "url": "https://www.imf.org/en/news/articles/2026/10/01/pr26316-el-salvador-imf-concludes-2nd-and-3rd-reviews-under-the-eff" }
+      ]
+    },
+
+    {
+      "id": "GTM-2020-RFI", "country": "Guatemala", "instrument": "Instrumento de Financiamiento Rápido (RFI)", "kind": "emergency",
+      "approval": "2020-06-10", "expiry": "2021-05-21", "status": "finalizado", "statusText": "Finalizado y sin saldo al 31/07/2023.",
+      "agreedSdrM": 428.6, "drawnSdrM": null, "balanceSdrM": 0, "balanceAsOf": "2023-07-31", "usdM": null, "pctQuota": null,
+      "notes": "La tabla del FMI muestra «desembolsado» en cero para esta fila; se omite para no inducir a error.",
+      "sources": [{ "label": "FMI, historial de compromisos (31/07/2023)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=370&date1key=2023-07-31" }]
+    },
+
+    {
+      "id": "HND-2019-SBA", "country": "Honduras", "instrument": "Stand-By (SBA) + Servicio de Crédito Stand-By (SCF)", "kind": "financing",
+      "approval": "2019-07-15", "expiry": "2022-01-14", "status": "finalizado", "statusText": "Vencidos el 14/01/2022. Saldo al 30/04/2025.",
+      "agreedSdrM": 537.07, "drawnSdrM": 424.66, "balanceSdrM": 189.547, "balanceAsOf": "2025-04-30", "usdM": null, "pctQuota": null,
+      "notes": "Suma de SBA (DEG 358,047 M) y SCF (DEG 179,023 M).",
+      "sources": [{ "label": "FMI, historial de compromisos (30/04/2025)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=410&date1key=2025-04-30" }]
+    },
+    {
+      "id": "HND-2023-EFF", "country": "Honduras", "instrument": "Servicio Ampliado (EFF) + Servicio de Crédito Ampliado (ECF)", "kind": "financing",
+      "approval": "2023-09-21", "expiry": null, "status": "vigente",
+      "statusText": "Vigente: el Directorio aprobó la prórroga el 29/06/2026 (el plazo original de 36 meses vencía el 20/09/2026). El comunicado no indica la nueva fecha.",
+      "agreedSdrM": 624.5, "drawnSdrM": 535.3, "balanceSdrM": null, "balanceAsOf": null, "usdM": 847, "pctQuota": null,
+      "notes": "EFF DEG 416,3 M + ECF DEG 208,2 M. Desembolsado según el comunicado del 29/06/2026.",
+      "sources": [
+        { "label": "FMI, historial de compromisos (30/04/2025)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=410&date1key=2025-04-30" },
+        { "label": "FMI, comunicado 29/06/2026", "url": "https://www.imf.org/en/news/articles/2026/06/29/26228-honduras-imf-executive-board-completes-fourth-and-fifth-reviews-eff-ecf-arrangements" }
+      ]
+    },
+
+    {
+      "id": "MEX-2019-FCL", "country": "México", "instrument": "Línea de Crédito Flexible (FCL)", "kind": "precautionary",
+      "approval": "2019-11-22", "expiry": "2021-11-18", "status": "finalizado", "statusText": "Vencida (estuvo en vigor en 2020-2021). Sin desembolsos.",
+      "agreedSdrM": 44563.5, "drawnSdrM": 0, "balanceSdrM": 0, "balanceAsOf": "2022-02-28", "usdM": null, "pctQuota": null, "notes": "",
+      "sources": [{ "label": "FMI, historial de compromisos (28/02/2022)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=670&date1key=2022-02-28" }]
+    },
+    {
+      "id": "MEX-2021-FCL", "country": "México", "instrument": "Línea de Crédito Flexible (FCL)", "kind": "precautionary",
+      "approval": "2021-11-19", "expiry": "2023-11-18", "status": "finalizado", "statusText": "Vencida. Sin desembolsos.",
+      "agreedSdrM": 35650.8, "drawnSdrM": 0, "balanceSdrM": 0, "balanceAsOf": "2022-02-28", "usdM": 50000, "pctQuota": null, "notes": "",
+      "sources": [{ "label": "FMI, historial de compromisos (28/02/2022)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=670&date1key=2022-02-28" }]
+    },
+    {
+      "id": "MEX-2023-FCL", "country": "México", "instrument": "Línea de Crédito Flexible (FCL)", "kind": "precautionary",
+      "approval": "2023-11-15", "expiry": "2025-11", "status": "finalizado", "statusText": "Cancelada y reemplazada por la línea de noviembre de 2025.",
+      "agreedSdrM": 26738.1, "drawnSdrM": null, "balanceSdrM": null, "balanceAsOf": null, "usdM": 35000, "pctQuota": 300, "notes": "",
+      "sources": [{ "label": "FMI, comunicado 16/11/2023", "url": "https://www.imf.org/en/News/Articles/2023/11/16/pr23398-mexico-imf-executive-board-approves-new-two-year-usd35b-fcl-arrangement" }]
+    },
+    {
+      "id": "MEX-2025-FCL", "country": "México", "instrument": "Línea de Crédito Flexible (FCL)", "kind": "precautionary",
+      "approval": "2025-11-13", "expiry": "2027-11", "status": "vigente", "statusText": "Vigente, precautoria (dos años).",
+      "agreedSdrM": 17825.4, "drawnSdrM": null, "balanceSdrM": null, "balanceAsOf": null, "usdM": 24000, "pctQuota": 200, "notes": "",
+      "sources": [{ "label": "FMI, comunicado 14/11/2025", "url": "https://www.imf.org/en/news/articles/2025/11/14/pr-25374-mexico-imf-approves-new-2-year-us-24-billion-flexible-credit-line-arrangement" }]
+    },
+
+    {
+      "id": "PAN-2020-RFI", "country": "Panamá", "instrument": "Instrumento de Financiamiento Rápido (RFI)", "kind": "emergency",
+      "approval": "2020-04-15", "expiry": null, "status": "finalizado", "statusText": "Finalizado; ya no figura con saldo al 31/03/2026.",
+      "agreedSdrM": 376.8, "drawnSdrM": 376.8, "balanceSdrM": 376.8, "balanceAsOf": "2022-01-31", "usdM": null, "pctQuota": null,
+      "notes": "El saldo de DEG 376,8 M es el del 31/01/2022; Panamá no figura en la tabla de crédito pendiente al 31/03/2026.",
+      "sources": [
+        { "label": "FMI, historial de compromisos (31/01/2022)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=770&date1key=2022-01-31" },
+        { "label": "FMI, crédito pendiente (31/03/2026)", "url": "https://www.imf.org/external/np/fin/tad/extcred2.aspx?date1key=2026-03-31&reportdate=2026-03-31" }
+      ]
+    },
+    {
+      "id": "PAN-2021-PLL", "country": "Panamá", "instrument": "Línea Precautoria y de Liquidez (PLL)", "kind": "precautionary",
+      "approval": "2021-01-19", "expiry": "2023-01-18", "status": "finalizado", "statusText": "Vencida. Sin desembolsos.",
+      "agreedSdrM": 1884, "drawnSdrM": 0, "balanceSdrM": 0, "balanceAsOf": "2022-01-31", "usdM": null, "pctQuota": null, "notes": "",
+      "sources": [{ "label": "FMI, historial de compromisos (31/01/2022)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=770&date1key=2022-01-31" }]
+    },
+
+    {
+      "id": "PRY-2020-RFI", "country": "Paraguay", "instrument": "Instrumento de Financiamiento Rápido (RFI)", "kind": "emergency",
+      "approval": "2020-04-21", "expiry": "2021-05-21", "status": "finalizado", "statusText": "Finalizado y sin saldo al 29/02/2024.",
+      "agreedSdrM": 201.4, "drawnSdrM": null, "balanceSdrM": 0, "balanceAsOf": "2024-02-29", "usdM": null, "pctQuota": null,
+      "notes": "La tabla del FMI muestra «desembolsado» en cero para esta fila; se omite para no inducir a error.",
+      "sources": [{ "label": "FMI, historial de compromisos (29/02/2024)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=780&date1key=2024-02-29" }]
+    },
+    {
+      "id": "PRY-2023-RSF", "country": "Paraguay", "instrument": "Servicio de Resiliencia y Sostenibilidad (RSF)", "kind": "financing",
+      "approval": "2023-12-19", "expiry": "2025-11-20", "status": "vigente",
+      "statusText": "Vigente al 22/01/2026 (4.ª revisión del RSF; el plazo del 20/11/2025 se prorrogó). Sin verificar si continúa a la fecha.",
+      "agreedSdrM": 302.1, "drawnSdrM": 231.6, "balanceSdrM": 231.6, "balanceAsOf": "2026-03-31", "usdM": null, "pctQuota": null,
+      "notes": "Acordado: DEG 302,1 M según la tabla al 29/02/2024 (puede haberse modificado con la reprogramación). Desembolsado = saldo RST al 31/03/2026. Además tiene un Instrumento de Coordinación de Políticas (PCI), sin financiamiento.",
+      "sources": [
+        { "label": "FMI, historial de compromisos (29/02/2024)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=780&date1key=2024-02-29" },
+        { "label": "FMI, comunicado 22/01/2026", "url": "https://www.imf.org/en/news/articles/2026/01/22/pr-26014-paraguay-imf-concludes-6th-rev-under-pci-and-4th-rev-under-rsf-arrangement" }
+      ]
+    },
+
+    {
+      "id": "PER-2020-FCL", "country": "Perú", "instrument": "Línea de Crédito Flexible (FCL)", "kind": "precautionary",
+      "approval": "2020-05-28", "expiry": "2022-05-26", "status": "finalizado", "statusText": "Vencida y reemplazada. Sin desembolsos.",
+      "agreedSdrM": 8007, "drawnSdrM": 0, "balanceSdrM": 0, "balanceAsOf": "2022-06-30", "usdM": 11000, "pctQuota": 600, "notes": "",
+      "sources": [{ "label": "FMI, historial de compromisos (30/06/2022)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=790&date1key=2022-06-30" }]
+    },
+    {
+      "id": "PER-2022-FCL", "country": "Perú", "instrument": "Línea de Crédito Flexible (FCL)", "kind": "precautionary",
+      "approval": "2022-05-27", "expiry": "2024-05-26", "status": "finalizado", "statusText": "Dejada vencer el 26/05/2024; Perú no solicitó una nueva.",
+      "agreedSdrM": 4003.5, "drawnSdrM": 0, "balanceSdrM": 0, "balanceAsOf": "2022-06-30", "usdM": 5400, "pctQuota": 300, "notes": "",
+      "sources": [
+        { "label": "FMI, historial de compromisos (30/06/2022)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?memberKey1=790&date1key=2022-06-30" },
+        { "label": "FMI, comunicado 21/05/2024", "url": "https://www.imf.org/en/News/Articles/2024/05/21/pr24174-peru-exits-the-flexible-credit-line-arrangement-with-the-imf" }
+      ]
+    }
+  ],
+
+  "noProgram": [
+    {
+      "country": "Brasil", "reason": "No encontré acuerdos con el FMI desde 2020 y no figura en la tabla de crédito pendiente al 31/03/2026.",
+      "source": { "label": "FMI, crédito pendiente (31/03/2026)", "url": "https://www.imf.org/external/np/fin/tad/extcred2.aspx?date1key=2026-03-31&reportdate=2026-03-31" }
+    },
+    {
+      "country": "Uruguay", "reason": "No encontré acuerdos con el FMI desde 2020 y no figura en la tabla de crédito pendiente al 31/03/2026.",
+      "source": { "label": "FMI, crédito pendiente (31/03/2026)", "url": "https://www.imf.org/external/np/fin/tad/extcred2.aspx?date1key=2026-03-31&reportdate=2026-03-31" }
+    },
+    {
+      "country": "Venezuela", "reason": "Sin acuerdos desde 2020: el último de su historial es un Stand-By de 1996 (tabla al 30/04/2025). No figura con crédito pendiente.",
+      "source": { "label": "FMI, historial de compromisos (30/04/2025)", "url": "https://www.imf.org/external/np/fin/tad/extarr2.aspx?date1key=2025-04-30&memberKey1=1050" }
+    }
+  ],
+
+  "pending": [
+    {
+      "country": "Bolivia",
+      "reason": "Acuerdo técnico (staff-level) por un EFF de 36 meses y ≈ US$ 1.900 M (DEG 1.369 M), sujeto a aprobación del Directorio. En las búsquedas no encontré esa aprobación, así que no se cuenta como vigente.",
+      "source": { "label": "FMI, comunicado 29/07/2026", "url": "https://www.imf.org/en/news/articles/2026/07/29/pr26268-bolivia-imf-reaches-staff-level-agreement-on-an-extended-fund-facility-arrangement" }
+    },
+    {
+      "country": "Paraguay",
+      "reason": "Además del RSF, tiene un Instrumento de Coordinación de Políticas (PCI), un acuerdo sin financiamiento.",
+      "source": { "label": "FMI, comunicado 22/01/2026", "url": "https://www.imf.org/en/news/articles/2026/01/22/pr-26014-paraguay-imf-concludes-6th-rev-under-pci-and-4th-rev-under-rsf-arrangement" }
+    }
+  ]
+}

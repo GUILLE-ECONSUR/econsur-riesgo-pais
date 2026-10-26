@@ -194,6 +194,38 @@
       <div class="chart-box" id="mbox" style="height:auto"><canvas id="macro"></canvas></div>
       <div class="src">Fuente: Elaboración propia en base a fuentes del mercado.</div>
     </div>
+
+    <div class="card" id="imfcard">
+      <div class="chead">
+        <h2 id="ititle">Financiamiento del FMI</h2>
+        <button class="png" data-chart="imf">Exportar PNG</button>
+      </div>
+      <div class="row">
+        <label class="t">Medida</label>
+        <button data-im="pending">Deuda con el FMI (crédito pendiente)</button>
+        <button data-im="access">Acceso de acuerdos vigentes</button>
+        <button data-im="disb">Desembolsado de acuerdos vigentes</button>
+        <button id="ifcl" title="Las líneas FCL son precautorias: acceso disponible, no dinero desembolsado">Incluir líneas precautorias (FCL)</button>
+      </div>
+      <div class="note" id="inote">Cargando…</div>
+      <div class="chart-box" style="height:400px"><canvas id="imf"></canvas></div>
+      <div class="src">Fuente: Elaboración propia en base a fuentes del mercado (tablas y comunicados oficiales del FMI; Chile: Banco Central de Chile).</div>
+      <div class="tablewrap" style="margin-top:12px"><table class="t" id="itbl"></table></div>
+    </div>
+
+    <div class="card" id="ihistcard">
+      <div class="chead"><h2>Historial de acuerdos con el FMI desde 2020</h2></div>
+      <div class="row">
+        <label class="t">Mostrar</label>
+        <button data-ih="all">Todos</button>
+        <button data-ih="vig">Vigentes</button>
+        <button data-ih="bal">Con saldo pendiente</button>
+        <button data-ih="fin">Finalizados o cancelados</button>
+      </div>
+      <div class="note" id="ihnote"></div>
+      <div class="tablewrap"><table class="t m" id="ihtbl"></table></div>
+      <div class="note" id="iexcl" style="margin-top:12px"></div>
+    </div>
   </section>
 
   <footer>
@@ -484,10 +516,11 @@
 
   // ---------- Exportar PNG ----------
   function exportPNG(id) {
-    const ch = { chart, rank, scatter: scat, groups: grp, macro: mchart }[id];
+    const ch = { chart, rank, scatter: scat, groups: grp, macro: mchart, imf: ipie }[id];
     if (!ch) return;
     const titles = {
       macro: () => $('mchtitle').textContent,
+      imf: () => $('ititle').textContent,
       chart: () => (S.base ? 'Spread EMBI – índice base 100' : 'Spread EMBI (pb)') + ` · ${fmtDate(S.from)} a ${fmtDate(S.to)}`,
       rank: () => 'Último dato disponible de spread EMBI por país (pb)',
       scatter: () => 'Nivel de spread vs. nota crediticia',
@@ -790,12 +823,130 @@
     }
   }
 
+  // ---------- Financiamiento del FMI (datos curados con fuente por registro) ----------
+  const P = { data: null, loading: false, measure: 'pending', fcl: false, hist: 'all' };
+  let ipie = null;
+  const fmtM = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 });
+  const fmt0 = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 });
+  const fmtDateAny = (d) => (!d ? '–' : d.length === 4 ? d : d.length === 7 ? `${d.slice(5, 7)}/${d.slice(0, 4)}` : fmtDate(d));
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const toUsd = (sdr) => sdr * P.data.meta.sdrUsdRate;
+  const link = (s) => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.label)}</a>`;
+
+  async function loadImf() {
+    if (P.data || P.loading) return;
+    P.loading = true;
+    try {
+      const r = await fetch('/data/imf-programas.json');
+      const txt = await r.text();
+      let j; try { j = JSON.parse(txt); } catch (_) { throw new Error('archivo no disponible'); }
+      if (!r.ok || !j.programs) throw new Error('HTTP ' + r.status);
+      P.data = j;
+    } catch (e) {
+      $('inote').innerHTML = '<span class="err">No se pudieron cargar los datos del FMI (' + e.message + ').</span>';
+    }
+    P.loading = false;
+    renderImf();
+  }
+
+  const pendingTotal = (r) => (r.graSdrM || 0) + (r.prgtSdrM || 0) + (r.rstSdrM || 0);
+
+  /** Filas del gráfico según la medida elegida: { country, sdr } agregadas por país */
+  function pieRows() {
+    const d = P.data, m = P.measure, by = {};
+    const add = (c, v) => { if (v != null && v > 0) by[c] = (by[c] || 0) + v; };
+    if (m === 'pending') d.outstanding.rows.forEach((r) => add(r.country, pendingTotal(r)));
+    else d.programs.filter((p) => p.status === 'vigente' && (m === 'disb' ? p.kind !== 'precautionary' : P.fcl || p.kind !== 'precautionary'))
+      .forEach((p) => add(p.country, m === 'access' ? p.agreedSdrM : p.drawnSdrM));
+    return Object.entries(by).map(([country, sdr]) => ({ country, sdr })).sort((a, b) => b.sdr - a.sdr);
+  }
+
+  function renderImf() {
+    if (!P.data || !S.data) return;
+    const d = P.data, m = P.measure;
+    const rows = pieRows();
+    const total = rows.reduce((a, r) => a + r.sdr, 0);
+    document.querySelectorAll('[data-im]').forEach((b) => b.classList.toggle('on', b.dataset.im === m));
+    $('ifcl').classList.toggle('on', P.fcl); $('ifcl').disabled = m !== 'access'; $('ifcl').style.opacity = m === 'access' ? '1' : '.45';
+    const label = { pending: `Deuda con el FMI al ${fmtDate(d.outstanding.asOf)} (crédito pendiente)`, access: 'Acceso aprobado de los acuerdos vigentes', disb: 'Desembolsado en los acuerdos vigentes' }[m];
+    $('ititle').textContent = `${label}: por país (US$ millones aprox. y %)`;
+    $('inote').innerHTML = ({
+      pending: `Lo que cada país debe al FMI por todos sus acuerdos, vigentes o ya vencidos (incluye, por ejemplo, el EFF 2022 de Argentina). Tabla oficial del FMI al ${fmtDate(d.outstanding.asOf)}; el FMI la publica en DEG. `,
+      access: 'Monto acordado de los acuerdos que siguen vigentes. ' + (P.fcl ? 'Incluye las líneas precautorias (FCL): son acceso disponible, no fondos recibidos. ' : 'Sin líneas precautorias (FCL); se pueden sumar con el botón. '),
+      disb: 'Lo ya desembolsado en los acuerdos vigentes (sin líneas precautorias). ',
+    })[m] + `US$ aproximados al tipo de cambio referencial 1 DEG = ${String(d.meta.sdrUsdRate).replace('.', ',')} US$. Total mostrado: DEG ${fmt0.format(total)} M ≈ US$ ${fmt0.format(toUsd(total))} M. Verificado al ${fmtDate(d.meta.verifiedOn)}.`;
+
+    const colorOf = (n) => S.color[n] || '#8b95a5';
+    const labels = { id: 'pielabels', afterDatasetsDraw(ch) {
+      const meta0 = ch.getDatasetMeta(0), c = ch.ctx; if (!meta0 || !meta0.data) return;
+      c.save(); c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = '600 12px system-ui, sans-serif';
+      meta0.data.forEach((arc, i) => {
+        const r = rows[i]; if (!r || !arc.getCenterPoint) return;
+        const pct = (r.sdr / total) * 100; if (pct < 5) return;
+        const pt = arc.getCenterPoint(), l1 = `US$ ${fmt0.format(toUsd(r.sdr))} M`, l2 = `${fmtM.format(pct)}%`;
+        c.lineWidth = 3; c.strokeStyle = 'rgba(0,0,0,.55)'; c.fillStyle = '#fff';
+        c.strokeText(l1, pt.x, pt.y - 7); c.fillText(l1, pt.x, pt.y - 7); c.strokeText(l2, pt.x, pt.y + 8); c.fillText(l2, pt.x, pt.y + 8);
+      });
+      c.restore(); } };
+    if (ipie) ipie.destroy();
+    ipie = rows.length ? new Chart($('imf'), {
+      type: 'pie',
+      data: { labels: rows.map((r) => r.country), datasets: [{ data: rows.map((r) => r.sdr), backgroundColor: rows.map((r) => colorOf(r.country)), borderColor: css('--card'), borderWidth: 2 }] },
+      options: { responsive: true, maintainAspectRatio: false, animation: false,
+        plugins: { legend: { position: 'right', labels: { color: css('--text'), usePointStyle: true, generateLabels: (ch) => ch.data.labels.map((l, i) => ({ text: `${l} · US$ ${fmt0.format(toUsd(rows[i].sdr))} M · ${fmtM.format((rows[i].sdr / total) * 100)}%`, fillStyle: ch.data.datasets[0].backgroundColor[i], strokeStyle: ch.data.datasets[0].backgroundColor[i], pointStyle: 'circle', index: i, fontColor: css('--text') })) } },
+          tooltip: { callbacks: { label: (c) => { const r = rows[c.dataIndex]; return [` DEG ${fmtM.format(r.sdr)} M ≈ US$ ${fmt0.format(toUsd(r.sdr))} M`, ` ${fmtM.format((r.sdr / total) * 100)}% del total`]; } } } } },
+      plugins: [labels],
+    }) : null;
+
+    // ---- Resumen por país
+    const pendBy = Object.fromEntries(d.outstanding.rows.map((r) => [r.country, r]));
+    const pendTot = d.outstanding.rows.reduce((a, r) => a + pendingTotal(r), 0);
+    const vig = d.programs.filter((p) => p.status === 'vigente');
+    const countries = [...new Set([...d.outstanding.rows.map((r) => r.country), ...vig.map((p) => p.country)])]
+      .sort((a, b) => (pendingTotal(pendBy[b] || {}) - pendingTotal(pendBy[a] || {})));
+    $('itbl').className = 't';
+    $('itbl').innerHTML = `<thead><tr><th class="l">País</th><th>Crédito pendiente (DEG M)</th><th>≈ US$ M</th><th>% del total</th><th class="l">Acuerdo vigente</th><th>Acceso (DEG M)</th><th>Desembolsado (DEG M)</th></tr></thead><tbody>` +
+      countries.map((c) => { const pr = pendBy[c], pv = vig.filter((p) => p.country === c), pt = pr ? pendingTotal(pr) : null;
+        return `<tr><td class="l">${c}</td><td>${pt != null ? fmtM.format(pt) : '–'}</td><td>${pt != null ? fmt0.format(toUsd(pt)) : '–'}</td><td>${pt != null ? fmtM.format((pt / pendTot) * 100) + '%' : '–'}</td>
+          <td class="l">${pv.length ? pv.map((p) => esc(p.instrument) + (p.kind === 'precautionary' ? ' <small>(precautoria)</small>' : '')).join('<br>') : 'Ninguno vigente'}</td>
+          <td>${pv.length ? pv.map((p) => (p.agreedSdrM != null ? fmtM.format(p.agreedSdrM) : '–')).join('<br>') : '–'}</td>
+          <td>${pv.length ? pv.map((p) => (p.kind === 'precautionary' ? 'sin giros' : p.drawnSdrM != null ? fmtM.format(p.drawnSdrM) : '–')).join('<br>') : '–'}</td></tr>`; }).join('') +
+      `</tbody><tfoot><tr><td class="l"><b>Total</b></td><td><b>${fmtM.format(pendTot)}</b></td><td><b>${fmt0.format(toUsd(pendTot))}</b></td><td><b>100%</b></td><td colspan="3" class="l"><small>Crédito pendiente: ${link(d.outstanding.source)}. Sin crédito pendiente: ${d.outstanding.zero.join(', ')}.</small></td></tr></tfoot>`;
+
+    renderImfHist();
+  }
+
+  function renderImfHist() {
+    const d = P.data; if (!d) return;
+    document.querySelectorAll('[data-ih]').forEach((b) => b.classList.toggle('on', b.dataset.ih === P.hist));
+    const f = { all: () => true, vig: (p) => p.status === 'vigente', bal: (p) => p.balanceSdrM != null && p.balanceSdrM > 0, fin: (p) => p.status !== 'vigente' }[P.hist];
+    const list = d.programs.filter(f).sort((a, b) => a.country.localeCompare(b.country, 'es') || (a.approval || '').localeCompare(b.approval || ''));
+    const stClass = { vigente: '#16a34a', finalizado: '#8b95a5', cancelado: '#dc2626' };
+    $('ihnote').textContent = `${list.length} acuerdos. «Saldo» = crédito pendiente de ese acuerdo a la fecha indicada (cada tabla del FMI tiene su fecha de corte; no todas son de 2026). ${d.meta.limits}`;
+    $('ihtbl').innerHTML = '<thead><tr><th class="l">País</th><th class="l">Instrumento</th><th>Aprobado</th><th>Vence</th><th>Acordado (DEG M)</th><th>Desembolsado (DEG M)</th><th>Saldo (DEG M)</th><th>US$ informado (M)</th><th class="l">Estado</th><th class="l">Fuentes</th></tr></thead><tbody>' +
+      list.map((p) => `<tr title="${esc(p.notes || '')}"><td class="l">${p.country}</td><td class="l">${esc(p.instrument)}${p.kind === 'precautionary' ? ' <small>(precautoria)</small>' : ''}</td>
+        <td>${fmtDateAny(p.approval)}</td><td>${fmtDateAny(p.expiry)}</td>
+        <td>${p.agreedSdrM != null ? fmtM.format(p.agreedSdrM) : '–'}</td><td>${p.drawnSdrM != null ? fmtM.format(p.drawnSdrM) : '–'}</td>
+        <td>${p.balanceSdrM != null ? fmtM.format(p.balanceSdrM) + (p.balanceAsOf ? `<small>${fmtDate(p.balanceAsOf)}</small>` : '') : '–'}</td>
+        <td>${p.usdM != null ? fmt0.format(p.usdM) : '–'}</td>
+        <td class="l"><span class="badge" style="background:${stClass[p.status] || '#8b95a5'}">${p.status}</span> <small>${esc(p.statusText)}</small></td>
+        <td class="l">${p.sources.map(link).join('<br>')}</td></tr>`).join('') + '</tbody>';
+
+    const li = (x) => `<li><b>${x.country}:</b> ${esc(x.reason)}${x.source ? ' ' + link(x.source) : ''}</li>`;
+    $('iexcl').innerHTML = '<b>Sin acuerdos desde 2020:</b><ul style="margin:6px 0 10px 18px;padding:0">' + d.noProgram.map(li).join('') + '</ul>' +
+      '<b>Pendientes o aclaraciones:</b><ul style="margin:6px 0 0 18px;padding:0">' + d.pending.map(li).join('') + '</ul>' +
+      `<div style="margin-top:8px">${esc(d.meta.method)}</div>` + d.outstanding.notes.map((n) => `<div style="margin-top:4px">${esc(n)}</div>`).join('');
+  }
+
   function bindMacro() {
+    document.querySelectorAll('[data-im]').forEach((b) => b.addEventListener('click', () => { P.measure = b.dataset.im; renderImf(); }));
+    document.querySelectorAll('[data-ih]').forEach((b) => b.addEventListener('click', () => { P.hist = b.dataset.ih; renderImfHist(); }));
+    $('ifcl').addEventListener('click', () => { P.fcl = !P.fcl; renderImf(); });
     document.querySelectorAll('button.tab').forEach((b) => b.addEventListener('click', () => {
       document.querySelectorAll('button.tab').forEach((x) => x.classList.toggle('on', x === b));
       $('tab-spread').hidden = b.dataset.tab !== 'spread';
       $('tab-macro').hidden = b.dataset.tab !== 'macro';
-      if (b.dataset.tab === 'macro') { M.data ? renderMacro() : loadMacro(); } else render();
+      if (b.dataset.tab === 'macro') { M.data ? renderMacro() : loadMacro(); P.data ? renderImf() : loadImf(); } else render();
     }));
     $('mgroups').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { M.group = b.dataset.mg; renderMacro(); } });
     $('myear').addEventListener('change', () => { M.year = +$('myear').value; renderMacro(); });
